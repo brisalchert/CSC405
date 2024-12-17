@@ -5,8 +5,7 @@ var canvas;
 /** @type {WebGLRenderingContext} */
 var gl;
 var points;
-var numTimesToSubdivide = 0;
-var numPoints = 5000;
+var numPoints = 50000;
 
 window.onload = function init() {
     canvas = document.getElementById("gl-canvas");
