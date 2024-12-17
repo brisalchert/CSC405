@@ -1,45 +1,71 @@
 "use strict"
 
+/** @type {HTMLCanvasElement} */
 var canvas;
+/** @type {WebGLRenderingContext} */
 var gl;
-var points = [];
+var points;
 var numTimesToSubdivide = 0;
+var numPoints = 5000;
 
-function init() {
+window.onload = function init() {
     canvas = document.getElementById("gl-canvas");
+    gl = WebGLUtils.setupWebGL(canvas);
+    if (!gl) {
+        alert("WebGL isn't available");
+    }
 
-    const numPositions = 5000;
-    var positions = [];
-
+    // Initialize vertices for gasket
     var vertices = [
         vec2(-1, -1),
         vec2(0, 1),
         vec2(1, -1)
     ];
 
+    // Specify starting point p for iterations
     var u = add(vertices[0], vertices[1]);
     var v = add(vertices[0], vertices[2]);
-    var p = mult(0.5, u, v);
+    var p = scale(0.25, add(u, v));
 
-    positions.push(p);
+    // Add the initial point to the array of points
+    points = [p];
 
-    for (var i = 0; i < numPositions - 1; ++i) {
-        var j = Math.floor(3 * Math.random());
+    // Compute each new point as the midpoint between the last
+    // point and a random vertex
+    for (var i = 0; points.length < numPoints; ++i) {
+        // Select a random vertex index
+        var j = Math.floor(Math.random() * 3);
 
-        p = add(positions[i], vertices[j]);
-        p = mult(0.5, p);
+        // Compute the new point
+        p = add(points[i], vertices[j]);
+        p = scale(0.5, p);
 
-        positions.push(p);
+        // Add the new point
+        points.push(p);
     }
 
+    // Initialization for WebGL
+    gl.viewport(0, 0, canvas.width, canvas.height);
+    gl.clearColor(1.0, 1.0, 1.0, 1.0);
+
+    // Load shaders and initialize attribute buffers
+    var program = initShaders(gl, "vertex-shader", "fragment-shader");
+    gl.useProgram(program);
+
+    // Load the data to the GPU
     var bufferId = gl.createBuffer();
     gl.bindBuffer(gl.ARRAY_BUFFER, bufferId);
-    gl.bufferData(gl.ARRAY_BUFFER, flatten(positions), gl.STATIC_DRAW);
+    gl.bufferData(gl.ARRAY_BUFFER, flatten(points), gl.STATIC_DRAW);
+
+    // Associate out shader variables with the data buffer
+    var vPosition = gl.getAttribLocation(program, "vPosition");
+    gl.vertexAttribPointer(vPosition, 2, gl.FLOAT, false, 0, 0);
+    gl.enableVertexAttribArray(vPosition);
 
     render();
-}
+};
 
 function render() {
     gl.clear(gl.COLOR_BUFFER_BIT);
-    gl.drawArrays(gl.POINTS, 0, numPositions);
+    gl.drawArrays(gl.POINTS, 0, points.length);
 }
