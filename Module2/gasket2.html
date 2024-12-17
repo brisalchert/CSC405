@@ -2,6 +2,28 @@
 <html>
     <head>
         <title>Sierpinski Gasket</title>
+        <script id="fragment-shader" type="x-shader/x-fragment">
+            #version 300 es
+
+            precision highp float;
+
+            out vec4 fColor;
+
+            void
+            main() {
+                fColor = vec4(1.0, 0.0, 0.0, 1.0);
+            }
+        </script>
+        <script id="vertex-shader" type="x-shader/x-vertex">
+            #version 300 es
+
+            in vec4 position;
+
+            void
+            main() {
+                gl_Position = aPosition;
+            }
+        </script>
         <script type="text/javascript" src="../Common/webgl-utils.js"></script>
         <script type="text/javascript" src="../Common/initShaders.js"></script>
         <script type="text/javascript" src="../Common/MV.js"></script>
