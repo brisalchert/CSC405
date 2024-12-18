@@ -24,7 +24,7 @@ window.onload = function init() {
     // Specify starting point p for iterations
     var u = add(vertices[0], vertices[1]);
     var v = add(vertices[0], vertices[2]);
-    var p = scale(0.25, add(u, v));
+    var p = scale(0.5, add(u, v));
 
     // Add the initial point to the array of points
     points = [p];
