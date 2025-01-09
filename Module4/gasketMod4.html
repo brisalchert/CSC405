@@ -8,7 +8,8 @@
             varying vec4 fColor;
 
             uniform vec3 theta;
-            uniform vec3 translate;
+            uniform vec2 translate;
+            uniform vec3 scale;
 
             void main() {
                 // Compute the sines and cosines of theta for each of
@@ -43,11 +44,18 @@
                     1.0, 0.0, 0.0, 0.0,
                     0.0, 1.0, 0.0, 0.0,
                     0.0, 0.0, 1.0, 0.0,
-                    translate.x, translate.y, translate.z, 1.0
+                    translate.x, translate.y, 0.0, 1.0
+                );
+
+                mat4 sc = mat4(
+                    scale.x, 0.0, 0.0, 0.0,
+                    0.0, scale.y, 0.0, 0.0,
+                    0.0, 0.0, scale.z, 0.0,
+                    0.0, 0.0, 0.0, 1.0
                 );
 
                 fColor = vColor;
-                gl_Position = tm * rz * ry * rx * vPosition;
+                gl_Position = tm * rz * ry * rx * sc * vPosition;
                 gl_Position.z = -gl_Position.z;
             }
         </script>

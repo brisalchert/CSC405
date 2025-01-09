@@ -14,14 +14,19 @@ var zAxis = 2;
 var axis = 0;
 var theta = [0, 0, 0];
 
-var translate = [0, 0, 0];
+var translate = [0, 0];
 var xVPositive = true;
 var yVPositive = true;
 var xVelocity = 0.004;
 var yVelocity = 0.002;
 
+var scale = [1.0, 1.0, 1.0];
+var scalePositive = true;
+var scaleVelocity = 0.001;
+
 var thetaLoc;
 var translateLoc;
+var scaleLoc;
 
 var vertices = [
     vec4(-0.11, -0.11,  0.11, 1.0),
@@ -101,6 +106,7 @@ window.onload = function init() {
 
     thetaLoc = gl.getUniformLocation(program, "theta");
     translateLoc = gl.getUniformLocation(program, "translate");
+    scaleLoc = gl.getUniformLocation(program, "scale");
 
     // Event listeners for buttons
     document.getElementById("xButton").onclick = function () {
@@ -119,8 +125,10 @@ window.onload = function init() {
 function render() {
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
+    // Handle rotation
     theta[axis] += 1.5;
 
+    // Handle translation
     if (translate[0] >= 0.5 || translate[0] <= -0.5) {
         xVPositive = !xVPositive;
         axis = (axis + 1) % 3;
@@ -143,8 +151,22 @@ function render() {
         translate[1] -= yVelocity;
     }
 
+    // Handle scaling
+    if (scale[0] >= 1.75 || scale[0] <= 0.25) {
+        scalePositive = !scalePositive;
+    }
+
+    for (var i = 0; i < scale.length; i++) {
+        if (scalePositive) {
+            scale[i] += scaleVelocity;
+        } else {
+            scale[i] -= scaleVelocity;
+        }
+    }
+
     gl.uniform3fv(thetaLoc, theta);
-    gl.uniform3fv(translateLoc, translate);
+    gl.uniform2fv(translateLoc, translate);
+    gl.uniform3fv(scaleLoc, scale);
 
     gl.drawElements(gl.TRIANGLES, numElements, gl.UNSIGNED_BYTE, 0);
 
