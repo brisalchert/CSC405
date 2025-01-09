@@ -26,6 +26,10 @@ var thetaLoc;
 var translateLoc;
 var scaleLoc;
 
+var rotateToggle = true;
+var translateToggle = true;
+var scaleToggle = true;
+
 var colorTheta = 0.0;
 var colorThetaLoc;
 
@@ -111,21 +115,14 @@ window.onload = function init() {
     colorThetaLoc = gl.getUniformLocation(program, "colorTheta");
 
     // Event listeners for buttons
-
-    //--------------------------------------------------------------------------
-    // ADD FUNCTIONALITY FOR INTERACTIVITY: LOCKING TRANSFORMATIONS
-    //--------------------------------------------------------------------------
-
-
-
-    document.getElementById("xButton").onclick = function () {
-        axis = xAxis;
+    document.getElementById("rotateButton").onclick = function () {
+        rotateToggle = !rotateToggle;
     };
-    document.getElementById("yButton").onclick = function () {
-        axis = yAxis;
+    document.getElementById("translateButton").onclick = function () {
+        translateToggle = !translateToggle;
     };
-    document.getElementById("zButton").onclick = function () {
-        axis = zAxis;
+    document.getElementById("scaleButton").onclick = function () {
+        scaleToggle = !scaleToggle;
     };
 
     render();
@@ -164,14 +161,20 @@ function render() {
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
     // Handle rotation
-    theta[axis] += 1.5;
+    if (rotateToggle) {
+        theta[axis] += 1.5;
+    }
 
     // Handle translation
-    updateTranslation(0);
-    updateTranslation(1);
+    if (translateToggle) {
+        updateTranslation(0);
+        updateTranslation(1);
+    }
 
     // Handle scaling
-    updateScaling();
+    if (scaleToggle) {
+        updateScaling();
+    }
 
     // Handle color
     colorTheta = (colorTheta + (2 * Math.PI / 1000)) % (2 * Math.PI);
