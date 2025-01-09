@@ -111,6 +111,13 @@ window.onload = function init() {
     colorThetaLoc = gl.getUniformLocation(program, "colorTheta");
 
     // Event listeners for buttons
+
+    //--------------------------------------------------------------------------
+    // ADD FUNCTIONALITY FOR INTERACTIVITY: LOCKING TRANSFORMATIONS
+    //--------------------------------------------------------------------------
+
+
+
     document.getElementById("xButton").onclick = function () {
         axis = xAxis;
     };
