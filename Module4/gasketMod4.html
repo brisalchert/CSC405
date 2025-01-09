@@ -62,9 +62,24 @@
         <script id="fragment-shader" type="x-shader/x-fragment">
             precision mediump float;
             varying vec4 fColor;
+            uniform float colorTheta;
 
             void main() {
-                gl_FragColor = fColor;
+                if (!(fColor.x == fColor.y && fColor.y == fColor.z)) {
+                    float angleR = asin((fColor.x - 0.5) * 2.0);
+                    float angleG = asin((fColor.y - 0.5) * 2.0);
+                    float angleB = asin((fColor.z - 0.5) * 2.0);
+
+                    float offset = (2.0 * (22.0 / 7.0) / 3.0);
+
+                    float r = sin(angleR + colorTheta) / 2.0 + 0.5;
+                    float g = sin(angleG + colorTheta) / 2.0 + 0.5;
+                    float b = sin(angleB + colorTheta) / 2.0 + 0.5;
+
+                    gl_FragColor = vec4(r, g, b, 1.0);
+                } else {
+                    gl_FragColor = fColor;
+                }
             }
         </script>
         <script type="text/javascript" src="../Common/webgl-utils.js"></script>

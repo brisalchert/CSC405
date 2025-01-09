@@ -26,6 +26,9 @@ var thetaLoc;
 var translateLoc;
 var scaleLoc;
 
+var colorTheta = 0.0;
+var colorThetaLoc;
+
 var vertices = [
     vec4(-0.11, -0.11,  0.11, 1.0),
     vec4(-0.11,  0.11,  0.11, 1.0),
@@ -71,7 +74,7 @@ window.onload = function init() {
     }
 
     gl.viewport(0, 0, canvas.width, canvas.height);
-    gl.clearColor(1.0, 1.0, 1.0, 1.0);
+    gl.clearColor(0.0, 0.0, 0.0, 1.0);
 
     gl.enable(gl.DEPTH_TEST);
 
@@ -105,6 +108,7 @@ window.onload = function init() {
     thetaLoc = gl.getUniformLocation(program, "theta");
     translateLoc = gl.getUniformLocation(program, "translate");
     scaleLoc = gl.getUniformLocation(program, "scale");
+    colorThetaLoc = gl.getUniformLocation(program, "colorTheta");
 
     // Event listeners for buttons
     document.getElementById("xButton").onclick = function () {
@@ -121,16 +125,18 @@ window.onload = function init() {
 }
 
 function updateTranslation(translateAxis) {
-        if (translate[translateAxis] >= 0.5 || translate[translateAxis] <= -0.5) {
-            translatePositive[translateAxis] = !translatePositive[translateAxis];
-            axis = (axis + 1) % 3;
-        }
+    var boundary = 0.8;
 
-        if (translatePositive[translateAxis]) {
-            translate[translateAxis] += translateVelocity[translateAxis];
-        } else {
-            translate[translateAxis] -= translateVelocity[translateAxis];
-        }
+    if (translate[translateAxis] >= boundary || translate[translateAxis] <= -boundary) {
+        translatePositive[translateAxis] = !translatePositive[translateAxis];
+        axis = (axis + 1) % 3;
+    }
+
+    if (translatePositive[translateAxis]) {
+        translate[translateAxis] += translateVelocity[translateAxis];
+    } else {
+        translate[translateAxis] -= translateVelocity[translateAxis];
+    }
 }
 
 function updateScaling() {
@@ -160,9 +166,13 @@ function render() {
     // Handle scaling
     updateScaling();
 
+    // Handle color
+    colorTheta = (colorTheta + (2 * Math.PI / 1000)) % (2 * Math.PI);
+
     gl.uniform3fv(thetaLoc, theta);
     gl.uniform2fv(translateLoc, translate);
     gl.uniform3fv(scaleLoc, scale);
+    gl.uniform1f(colorThetaLoc, colorTheta);
 
     gl.drawElements(gl.TRIANGLES, numElements, gl.UNSIGNED_BYTE, 0);
 
