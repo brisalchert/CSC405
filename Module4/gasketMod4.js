@@ -16,7 +16,7 @@ var theta = [0, 0, 0];
 
 var translate = [0, 0];
 var translatePositive = [true, true];
-var translateVelocity = [0.004, 0.002];
+var translateVelocity = [0.00354, 0.00157];
 
 var scale = [1.0, 1.0, 1.0];
 var scalePositive = true;
