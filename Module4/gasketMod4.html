@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
     <head>
-        <title>Colored Cube</title>
+        <title>Prismatic Cube</title>
         <script id="vertex-shader" type="x-shader/x-vertex">
             attribute vec4 vPosition;
             attribute vec4 vColor;
@@ -65,21 +65,17 @@
             uniform float colorTheta;
 
             void main() {
-                if (!(fColor.x == fColor.y && fColor.y == fColor.z)) {
-                    float angleR = asin((fColor.x - 0.5) * 2.0);
-                    float angleG = asin((fColor.y - 0.5) * 2.0);
-                    float angleB = asin((fColor.z - 0.5) * 2.0);
+                float angleR = asin((fColor.x - 0.5) * 2.0);
+                float angleG = asin((fColor.y - 0.5) * 2.0);
+                float angleB = asin((fColor.z - 0.5) * 2.0);
 
-                    float offset = (2.0 * (22.0 / 7.0) / 3.0);
+                float offset = (2.0 * (22.0 / 7.0) / 3.0);
 
-                    float r = sin(angleR + colorTheta) / 2.0 + 0.5;
-                    float g = sin(angleG + colorTheta) / 2.0 + 0.5;
-                    float b = sin(angleB + colorTheta) / 2.0 + 0.5;
+                float r = sin(angleR + colorTheta) / 2.0 + 0.5;
+                float g = sin(angleG + colorTheta + offset) / 2.0 + 0.5;
+                float b = sin(angleB + colorTheta + (2.0 * offset)) / 2.0 + 0.5;
 
-                    gl_FragColor = vec4(r, g, b, 1.0);
-                } else {
-                    gl_FragColor = fColor;
-                }
+                gl_FragColor = vec4(r, g, b, 1.0);
             }
         </script>
         <script type="text/javascript" src="../Common/webgl-utils.js"></script>
