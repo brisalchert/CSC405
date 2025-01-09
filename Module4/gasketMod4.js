@@ -14,17 +14,24 @@ var zAxis = 2;
 var axis = 0;
 var theta = [0, 0, 0];
 
+var translate = [0, 0, 0];
+var xVPositive = true;
+var yVPositive = true;
+var xVelocity = 0.004;
+var yVelocity = 0.002;
+
 var thetaLoc;
+var translateLoc;
 
 var vertices = [
-    vec4(-0.5, -0.5,  0.5, 1.0),
-    vec4(-0.5,  0.5,  0.5, 1.0),
-    vec4( 0.5,  0.5,  0.5, 1.0),
-    vec4( 0.5, -0.5,  0.5, 1.0),
-    vec4(-0.5, -0.5, -0.5, 1.0),
-    vec4(-0.5,  0.5, -0.5, 1.0),
-    vec4( 0.5,  0.5, -0.5, 1.0),
-    vec4( 0.5, -0.5, -0.5, 1.0)
+    vec4(-0.11, -0.11,  0.11, 1.0),
+    vec4(-0.11,  0.11,  0.11, 1.0),
+    vec4( 0.11,  0.11,  0.11, 1.0),
+    vec4( 0.11, -0.11,  0.11, 1.0),
+    vec4(-0.11, -0.11, -0.11, 1.0),
+    vec4(-0.11,  0.11, -0.11, 1.0),
+    vec4( 0.11,  0.11, -0.11, 1.0),
+    vec4( 0.11, -0.11, -0.11, 1.0)
 ];
 
 var vertexColors = [
@@ -93,19 +100,17 @@ window.onload = function init() {
     gl.enableVertexAttribArray(vPosition);
 
     thetaLoc = gl.getUniformLocation(program, "theta");
+    translateLoc = gl.getUniformLocation(program, "translate");
 
     // Event listeners for buttons
     document.getElementById("xButton").onclick = function () {
         axis = xAxis;
-        // theta[xAxis] += 15.0;
     };
     document.getElementById("yButton").onclick = function () {
         axis = yAxis;
-        // theta[yAxis] += 15.0;
     };
     document.getElementById("zButton").onclick = function () {
         axis = zAxis;
-        // theta[zAxis] += 15.0;
     };
 
     render();
@@ -114,8 +119,32 @@ window.onload = function init() {
 function render() {
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
-    theta[axis] += 1.0;
+    theta[axis] += 1.5;
+
+    if (translate[0] >= 0.5 || translate[0] <= -0.5) {
+        xVPositive = !xVPositive;
+        axis = (axis + 1) % 3;
+    }
+
+    if (translate[1] >= 0.5 || translate[1] <= -0.5) {
+        yVPositive = !yVPositive;
+        axis = (axis + 1) % 3;
+    }
+
+    if (xVPositive) {
+        translate[0] += xVelocity;
+    } else {
+        translate[0] -= xVelocity;
+    }
+
+    if (yVPositive) {
+        translate[1] += yVelocity;
+    } else {
+        translate[1] -= yVelocity;
+    }
+
     gl.uniform3fv(thetaLoc, theta);
+    gl.uniform3fv(translateLoc, translate);
 
     gl.drawElements(gl.TRIANGLES, numElements, gl.UNSIGNED_BYTE, 0);
 
