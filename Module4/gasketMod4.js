@@ -15,10 +15,8 @@ var axis = 0;
 var theta = [0, 0, 0];
 
 var translate = [0, 0];
-var xVPositive = true;
-var yVPositive = true;
-var xVelocity = 0.004;
-var yVelocity = 0.002;
+var translatePositive = [true, true];
+var translateVelocity = [0.004, 0.002];
 
 var scale = [1.0, 1.0, 1.0];
 var scalePositive = true;
@@ -122,36 +120,20 @@ window.onload = function init() {
     render();
 }
 
-function render() {
-    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+function updateTranslation(translateAxis) {
+        if (translate[translateAxis] >= 0.5 || translate[translateAxis] <= -0.5) {
+            translatePositive[translateAxis] = !translatePositive[translateAxis];
+            axis = (axis + 1) % 3;
+        }
 
-    // Handle rotation
-    theta[axis] += 1.5;
+        if (translatePositive[translateAxis]) {
+            translate[translateAxis] += translateVelocity[translateAxis];
+        } else {
+            translate[translateAxis] -= translateVelocity[translateAxis];
+        }
+}
 
-    // Handle translation
-    if (translate[0] >= 0.5 || translate[0] <= -0.5) {
-        xVPositive = !xVPositive;
-        axis = (axis + 1) % 3;
-    }
-
-    if (translate[1] >= 0.5 || translate[1] <= -0.5) {
-        yVPositive = !yVPositive;
-        axis = (axis + 1) % 3;
-    }
-
-    if (xVPositive) {
-        translate[0] += xVelocity;
-    } else {
-        translate[0] -= xVelocity;
-    }
-
-    if (yVPositive) {
-        translate[1] += yVelocity;
-    } else {
-        translate[1] -= yVelocity;
-    }
-
-    // Handle scaling
+function updateScaling() {
     if (scale[0] >= 1.75 || scale[0] <= 0.25) {
         scalePositive = !scalePositive;
     }
@@ -163,6 +145,20 @@ function render() {
             scale[i] -= scaleVelocity;
         }
     }
+}
+
+function render() {
+    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+
+    // Handle rotation
+    theta[axis] += 1.5;
+
+    // Handle translation
+    updateTranslation(0);
+    updateTranslation(1);
+
+    // Handle scaling
+    updateScaling();
 
     gl.uniform3fv(thetaLoc, theta);
     gl.uniform2fv(translateLoc, translate);
