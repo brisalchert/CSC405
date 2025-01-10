@@ -18,7 +18,9 @@
                 vec3 c = cos(angles);
                 vec3 s = sin(angles);
 
-                // Remember: these matrices are column-major
+                // Matrices are column-major
+
+                // Create rotation matrix for the x-axis
                 mat4 rx = mat4(
                     1.0,  0.0,  0.0, 0.0,
                     0.0,  c.x,  s.x, 0.0,
@@ -26,6 +28,7 @@
                     0.0,  0.0,  0.0, 1.0
                 );
 
+                // Create rotation matrix for the y-axis
                 mat4 ry = mat4(
                     c.y, 0.0, -s.y, 0.0,
                     0.0, 1.0,  0.0, 0.0,
@@ -33,6 +36,7 @@
                     0.0, 0.0,  0.0, 1.0
                 );
 
+                // Create rotation matrix for the z-axis
                 mat4 rz = mat4(
                     c.z, s.z, 0.0, 0.0,
                     -s.z, c.z, 0.0, 0.0,
@@ -40,6 +44,8 @@
                     0.0, 0.0, 0.0, 1.0
                 );
 
+                // Create translation matrix for translation in the
+                // xy-plane
                 mat4 tm = mat4(
                     1.0, 0.0, 0.0, 0.0,
                     0.0, 1.0, 0.0, 0.0,
@@ -47,6 +53,7 @@
                     translate.x, translate.y, 0.0, 1.0
                 );
 
+                // Create scaling matrix
                 mat4 sc = mat4(
                     scale.x, 0.0, 0.0, 0.0,
                     0.0, scale.y, 0.0, 0.0,
@@ -54,7 +61,10 @@
                     0.0, 0.0, 0.0, 1.0
                 );
 
+                // Pass color information to the fragment shader
                 fColor = vColor;
+
+                // Apply transformations
                 gl_Position = tm * rz * ry * rx * sc * vPosition;
                 gl_Position.z = -gl_Position.z;
             }
@@ -65,16 +75,19 @@
             uniform float colorTheta;
 
             void main() {
+                // Compute inverse sine for each color value
                 float angleR = asin((fColor.x - 0.5) * 2.0);
                 float angleG = asin((fColor.y - 0.5) * 2.0);
                 float angleB = asin((fColor.z - 0.5) * 2.0);
 
                 float offset = (2.0 * (22.0 / 7.0) / 3.0);
 
+                // Compute new color values
                 float r = sin(angleR + colorTheta) / 2.0 + 0.5;
                 float g = sin(angleG + colorTheta + offset) / 2.0 + 0.5;
                 float b = sin(angleB + colorTheta + (2.0 * offset)) / 2.0 + 0.5;
 
+                // Apply new color
                 gl_FragColor = vec4(r, g, b, 1.0);
             }
         </script>
