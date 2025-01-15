@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Prismatic Cube</title>
+        <script id="vertex-shader" type="x-shader/x-vertex">
+            attribute vec4 vPosition;
+            attribute vec4 vColor;
+            varying vec4 fColor;
+
+            uniform mat4 modelViewMatrix;
+            uniform mat4 projectionMatrix;
+
+            void main() {
+                // Pass color information to the fragment shader
+                fColor = vColor;
+
+                // Apply transformations
+                gl_Position = projectionMatrix * modelViewMatrix * vPosition;
+            }
+        </script>
+        <script id="fragment-shader" type="x-shader/x-fragment">
+            precision mediump float;
+            varying vec4 fColor;
+            uniform float colorTheta;
+
+            void main() {
+                // Compute inverse sine for each color value
+                float angleR = asin((fColor.x - 0.5) * 2.0);
+                float angleG = asin((fColor.y - 0.5) * 2.0);
+                float angleB = asin((fColor.z - 0.5) * 2.0);
+
+                float offset = (2.0 * (22.0 / 7.0) / 3.0);
+
+                // Compute new color values
+                float r = sin(angleR + colorTheta) / 2.0 + 0.5;
+                float g = sin(angleG + colorTheta + offset) / 2.0 + 0.5;
+                float b = sin(angleB + colorTheta + (2.0 * offset)) / 2.0 + 0.5;
+
+                // Apply new color
+                gl_FragColor = vec4(r, g, b, 1.0);
+            }
+        </script>
+        <script type="text/javascript" src="../Common/webgl-utils.js"></script>
+        <script type="text/javascript" src="../Common/initShaders.js"></script>
+        <script type="text/javascript" src="../Common/MV.js"></script>
+        <script type="text/javascript" src="../Common/MV2.js"></script>
+        <script type="text/javascript" src="gasketMod5.js"></script>
+    </head>
+    <body>
+        <canvas id="gl-canvas" width="512" height="512">
+            Sorry; your web browser does not support HTML5's canvas element.
+        </canvas>
+        <div>
+            Depth: .05<input id="depthSlider" type="range"
+             min=".05" max="3" step="0.01" value="3" style="width: 400px" />
+             3
+        </div>
+        <div>
+            Radius: 0.05<input id="radiusSlider" type="range"
+             min="0.05" max="2" step="0.01" value="0.05" style="width: 400px" />
+             2
+        </div>
+        <div>
+            Theta: -180<input id="thetaSlider" type="range"
+             min="-180" max="180" step="2.5" value="0" style="width: 400px" />
+             180
+        </div>
+        <div>
+            Phi: -90<input id="phiSlider" type="range"
+             min="-90" max="90" step="2.5" value="0" style="width: 400px" />
+             90
+        </div>
+        <div>
+            Width: 1<input id="widthSlider" type="range"
+             min="1" max="20" step="0.05" value="1" style="width: 400px" />
+             20
+        </div>
+        <div>
+            Height: 1<input id="heightSlider" type="range"
+             min="1" max="20" step="0.05" value="1" style="width: 400px" />
+             20
+        </div>
+    </body>
+</html>
