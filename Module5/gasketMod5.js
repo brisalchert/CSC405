@@ -7,8 +7,6 @@ var gl;
 
 var numElements = 36;
 
-var thetaLoc;
-
 var colorTheta = 0.0;
 var colorThetaLoc;
 
@@ -28,7 +26,11 @@ var modelViewMatrix, projectionMatrix;
 var modelViewMatrixLoc, projectionMatrixLoc;
 var eye;
 const at = vec3(0.0, 0.0, 0.0);
-const up = vec3(0.0, 1.0, 0.0);
+var up = vec3(0.0, 1.0, 0.0);
+
+var autoRotateTheta = false;
+var autoRotatePhi = false;
+var invertedCamera = false;
 
 // Define the shape of the cube with vertex coordinates
 // in the model frame
@@ -143,12 +145,40 @@ window.onload = function init() {
         left = -event.target.value/2;
     });
 
+    // Set event listeners for auto rotation buttons
+    document.getElementById("autoThetaButton").onclick = function() {
+        autoRotateTheta = !autoRotateTheta;
+    };
+    document.getElementById("autoPhiButton").onclick = function() {
+        autoRotatePhi = !autoRotatePhi;
+    };
+
     // Start the render loop
     render();
 }
 
 function render() {
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+
+    // Check for auto rotation of either angle
+    if (autoRotateTheta) {
+        theta += (Math.PI / 180.0);
+        theta %= (2 * Math.PI);
+    }
+
+    if (autoRotatePhi) {
+        phi += (Math.PI / 180.0);
+        phi %= (2 * Math.PI);
+    }
+
+    // Check if camera's up direction needs to be inverted
+    if (!invertedCamera && phi > (Math.PI / 2.0) && phi < (3.0 * Math.PI / 2.0)) {
+        invertedCamera = true;
+        up = negate(up);
+    } else if (invertedCamera && (phi < (Math.PI / 2.0) || phi > (3.0 * Math.PI / 2.0))) {
+        invertedCamera = false;
+        up = negate(up);
+    }
 
     // Calculate eye location
     eye = vec3(
@@ -162,7 +192,7 @@ function render() {
     projectionMatrix = ortho(left, right, bottom, ytop, near, far);
 
     // Increment color cycle
-    colorTheta = (colorTheta + (2 * Math.PI / 1000)) % (2 * Math.PI);
+    // colorTheta = (colorTheta + (2 * Math.PI / 1000)) % (2 * Math.PI);
 
     // Pass new values to uniforms in the vertex and fragment shaders
     gl.uniform1f(colorThetaLoc, colorTheta);
