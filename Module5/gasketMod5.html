@@ -24,17 +24,13 @@
             uniform float colorTheta;
 
             void main() {
-                // Compute inverse sine for each color value
-                float angleR = asin((fColor.x - 0.5) * 2.0);
-                float angleG = asin((fColor.y - 0.5) * 2.0);
-                float angleB = asin((fColor.z - 0.5) * 2.0);
+                float pi = (22.0 / 7.0);
+                float offset = (2.0 * pi / 3.0);
 
-                float offset = (2.0 * (22.0 / 7.0) / 3.0);
-
-                // Compute new color values
-                float r = sin(angleR + colorTheta) / 2.0 + 0.5;
-                float g = sin(angleG + colorTheta + offset) / 2.0 + 0.5;
-                float b = sin(angleB + colorTheta + (2.0 * offset)) / 2.0 + 0.5;
+                // Compute new color values from old color values
+                float r = sin((fColor.x * pi) + colorTheta) / 2.0 + 0.5;
+                float g = sin((fColor.y * pi) + colorTheta + offset) / 2.0 + 0.5;
+                float b = sin((fColor.z * pi) + colorTheta + (2.0 * offset)) / 2.0 + 0.5;
 
                 // Apply new color
                 gl_FragColor = vec4(r, g, b, 1.0);
@@ -50,6 +46,8 @@
         <canvas id="gl-canvas" width="512" height="512">
             Sorry; your web browser does not support HTML5's canvas element.
         </canvas>
+        <br/>
+        <p>Click and drag on the image to position the camera!</p>
         <div>
             Depth: .05<input id="depthSlider" type="range"
              min=".05" max="3" step="0.01" value="3" style="width: 400px" />
