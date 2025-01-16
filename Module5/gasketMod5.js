@@ -21,16 +21,16 @@ var right = 0.5;
 var ytop = 0.5;
 var bottom = -0.5;
 
-
 var modelViewMatrix, projectionMatrix;
 var modelViewMatrixLoc, projectionMatrixLoc;
 var eye;
 const at = vec3(0.0, 0.0, 0.0);
 var up = vec3(0.0, 1.0, 0.0);
 
-var autoRotateTheta = false;
-var autoRotatePhi = false;
 var invertedCamera = false;
+
+var startDragX = null;
+var startDragY = null;
 
 // Define the shape of the cube with vertex coordinates
 // in the model frame
@@ -145,40 +145,67 @@ window.onload = function init() {
         left = -event.target.value/2;
     });
 
-    // Set event listeners for auto rotation buttons
-    document.getElementById("autoThetaButton").onclick = function() {
-        autoRotateTheta = !autoRotateTheta;
-    };
-    document.getElementById("autoPhiButton").onclick = function() {
-        autoRotatePhi = !autoRotatePhi;
-    };
+    // Set mouse interactivity event handlers
+    canvas.onmousedown = mouseDownHandler;
+    canvas.onmousemove = mouseMoveHandler;
+    document.onmouseup = mouseUpHandler; // Ensure letting go outside canvas stops drag
 
     // Start the render loop
     render();
 }
 
+function mouseDownHandler(e) {
+    // Set starting location for mouse drag
+    startDragX = e.clientX;
+    startDragY = e.clientY;
+}
+
+function mouseMoveHandler(e) {
+    // Ensure a drag is started before making the movement
+    if (startDragX === null || startDragY === null)
+        return;
+
+    drag(e.clientX - startDragX, e.clientY - startDragY);
+
+    startDragX = e.clientX;
+    startDragY = e.clientY;
+}
+
+function mouseUpHandler() {
+    // Remove starting location to signal end of drag
+    startDragX = null;
+    startDragY = null;
+}
+
+function drag(deltaX, deltaY) {
+    var radPerPixel = (Math.PI / 450);
+    var deltaTheta = radPerPixel * deltaX;
+    var deltaPhi = radPerPixel * deltaY;
+
+    // Add deltaPhi for vertical rotation
+    phi += deltaPhi;
+
+    // Subtract deltaTheta for horizontal rotation
+    theta -= deltaTheta;
+}
+
 function render() {
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
-    // Check for auto rotation of either angle
-    if (autoRotateTheta) {
-        theta += (Math.PI / 180.0);
-        theta %= (2 * Math.PI);
+    // Ensure angles are within range for sliders
+    while (theta < 0) {
+        theta += 2.0 * Math.PI;
     }
 
-    if (autoRotatePhi) {
-        phi += (Math.PI / 180.0);
-        phi %= (2 * Math.PI);
+    while (theta > 2.0 * Math.PI) {
+        theta -= 2.0 * Math.PI;
     }
 
-    // Check if camera's up direction needs to be inverted
-    if (!invertedCamera && phi > (Math.PI / 2.0) && phi < (3.0 * Math.PI / 2.0)) {
-        invertedCamera = true;
-        up = negate(up);
-    } else if (invertedCamera && (phi < (Math.PI / 2.0) || phi > (3.0 * Math.PI / 2.0))) {
-        invertedCamera = false;
-        up = negate(up);
-    }
+    phi = Math.min(Math.max(phi, (-Math.PI / 2.0)), (Math.PI / 2.0));
+
+    // Ensure slider values match current rotation
+    document.getElementById("thetaSlider").value = (theta * 180.0 / Math.PI);
+    document.getElementById("phiSlider").value = (phi * 180.0 / Math.PI);
 
     // Calculate eye location
     eye = vec3(
@@ -192,7 +219,7 @@ function render() {
     projectionMatrix = ortho(left, right, bottom, ytop, near, far);
 
     // Increment color cycle
-    // colorTheta = (colorTheta + (2 * Math.PI / 1000)) % (2 * Math.PI);
+    colorTheta = (colorTheta + (2 * Math.PI / 1000)) % (2 * Math.PI);
 
     // Pass new values to uniforms in the vertex and fragment shaders
     gl.uniform1f(colorThetaLoc, colorTheta);
