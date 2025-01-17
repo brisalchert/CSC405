@@ -7,6 +7,10 @@ var gl;
 
 var numElements = 36;
 
+var points = [];
+var colors = [];
+var normals = [];
+
 var colorTheta = 0.0;
 var colorThetaLoc;
 
@@ -21,8 +25,8 @@ var right = 0.5;
 var ytop = 0.5;
 var bottom = -0.5;
 
-var modelViewMatrix, projectionMatrix;
-var modelViewMatrixLoc, projectionMatrixLoc;
+var modelViewMatrix, projectionMatrix, normalMatrix, reverseLightDirection;
+var modelViewMatrixLoc, projectionMatrixLoc, normalMatrixLoc, reverseLightDirectionLoc;
 var eye;
 const at = vec3(0.0, 0.0, 0.0);
 var up = vec3(0.0, 1.0, 0.0);
@@ -59,22 +63,40 @@ var vertexColors = [
     [0.0, 1.0, 1.0, 1.0]   // cyan
 ];
 
-// Define the indices for each of the 12 triangles
-// composing the faces of the cube
-var indices = [
-    1, 0, 3,
-    3, 2, 1,
-    2, 3, 7,
-    7, 6, 2,
-    3, 0, 4,
-    4, 7, 3,
-    6, 5, 1,
-    1, 2, 6,
-    4, 5, 6,
-    6, 7, 4,
-    5, 4, 0,
-    0, 1, 5
-];
+function colorCube()
+{
+    quad(1, 0, 3, 2);
+    quad(2, 3, 7, 6);
+    quad(3, 0, 4, 7);
+    quad(6, 5, 1, 2);
+    quad(4, 5, 6, 7);
+    quad(5, 4, 0, 1);
+}
+
+function quad(a, b, c, d)
+{
+    var indices = [a, b, c, a, c, d];
+
+    // Calculate normal for the given face
+    var edge1 = vec3(
+        vertices[b][0] - vertices[a][0],
+        vertices[b][1] - vertices[a][1],
+        vertices[b][2] - vertices[a][2]
+    );
+    var edge2 = vec3(
+        vertices[c][0] - vertices[a][0],
+        vertices[c][1] - vertices[a][1],
+        vertices[c][2] - vertices[a][2]
+    );
+    var normal = normalize(cross(edge1, edge2));
+    console.log(normal);
+
+    for (var i = 0; i < indices.length; i++) {
+        points.push(vertices[indices[i]]);
+        colors.push(vertexColors[indices[i]]);
+        normals.push(normal);
+    }
+}
 
 window.onload = function init() {
     canvas = document.getElementById("gl-canvas");
@@ -82,6 +104,9 @@ window.onload = function init() {
     if (!gl) {
         alert("WebGL isn't available");
     }
+
+    // Initialize points, colors, and normals
+    colorCube();
 
     // Set viewport and set background color to black
     gl.viewport(0, 0, canvas.width, canvas.height);
@@ -94,16 +119,10 @@ window.onload = function init() {
     var program = initShaders(gl, "vertex-shader", "fragment-shader");
     gl.useProgram(program);
 
-    // Pass index data to the element array buffer, which handles
-    // element indices rather than vertex attributes
-    var iBuffer = gl.createBuffer();
-    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, iBuffer);
-    gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint8Array(indices), gl.STATIC_DRAW);
-
     // Pass vertex color data to a new array buffer
     var cBuffer = gl.createBuffer();
     gl.bindBuffer(gl.ARRAY_BUFFER, cBuffer);
-    gl.bufferData(gl.ARRAY_BUFFER, flatten(vertexColors), gl.STATIC_DRAW);
+    gl.bufferData(gl.ARRAY_BUFFER, flatten(colors), gl.STATIC_DRAW);
 
     // Link color data to the attribute in the vertex shader
     var vColor = gl.getAttribLocation(program, "vColor");
@@ -113,17 +132,29 @@ window.onload = function init() {
     // Pass vertex position data to a new array buffer
     var vBuffer = gl.createBuffer();
     gl.bindBuffer(gl.ARRAY_BUFFER, vBuffer);
-    gl.bufferData(gl.ARRAY_BUFFER, flatten(vertices), gl.STATIC_DRAW);
+    gl.bufferData(gl.ARRAY_BUFFER, flatten(points), gl.STATIC_DRAW);
 
     // Link position data to the attribute in the vertex shader
     var vPosition = gl.getAttribLocation(program, "vPosition");
     gl.vertexAttribPointer(vPosition, 4, gl.FLOAT, false, 0, 0);
     gl.enableVertexAttribArray(vPosition);
 
+    // Pass vertex normals to a new array buffer
+    var normalBuffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, normalBuffer);
+    gl.bufferData(gl.ARRAY_BUFFER, flatten(normals), gl.STATIC_DRAW);
+
+    // Link normals data to the attribute in the vertex shader
+    var vNormal = gl.getAttribLocation(program, "vNormal");
+    gl.vertexAttribPointer(vNormal, 3, gl.FLOAT, false, 0, 0);
+    gl.enableVertexAttribArray(vNormal);
+
     // Get locations of uniforms in the vertex and fragment shaders
     colorThetaLoc = gl.getUniformLocation(program, "colorTheta");
-    modelViewMatrixLoc = gl.getUniformLocation( program, "modelViewMatrix" );
-    projectionMatrixLoc = gl.getUniformLocation( program, "projectionMatrix" );
+    modelViewMatrixLoc = gl.getUniformLocation(program, "modelViewMatrix");
+    projectionMatrixLoc = gl.getUniformLocation(program, "projectionMatrix");
+    normalMatrixLoc = gl.getUniformLocation(program, "normalMatrix");
+    reverseLightDirectionLoc = gl.getUniformLocation(program, "reverseLightDirection");
 
     // Set event listeners for sliders
     document.getElementById("depthSlider").addEventListener("input", function(event) {
@@ -268,6 +299,13 @@ function render() {
         projectionMatrix = ortho(left, right, bottom, ytop, near, far);
     }
 
+    // Calculate normal matrix
+    normalMatrix = inverse(modelViewMatrix);
+    normalMatrix = transpose(normalMatrix);
+
+    // Set light direction
+    reverseLightDirection = normalize(vec3(0.5, 0.7, 1.0))
+
     // Increment color cycle
     colorTheta = (colorTheta + (2 * Math.PI / 1000)) % (2 * Math.PI);
 
@@ -275,9 +313,11 @@ function render() {
     gl.uniform1f(colorThetaLoc, colorTheta);
     gl.uniformMatrix4fv(modelViewMatrixLoc, false, flatten(modelViewMatrix));
     gl.uniformMatrix4fv(projectionMatrixLoc, false, flatten(projectionMatrix));
+    gl.uniformMatrix4fv(normalMatrixLoc, false, flatten(normalMatrix));
+    gl.uniform3fv(reverseLightDirectionLoc, reverseLightDirection);
 
     // Draw the cube
-    gl.drawElements(gl.TRIANGLES, numElements, gl.UNSIGNED_BYTE, 0);
+    gl.drawArrays(gl.TRIANGLES, 0, numElements);
 
     // Start next animation frame
     requestAnimFrame(render);

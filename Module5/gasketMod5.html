@@ -5,22 +5,38 @@
         <script id="vertex-shader" type="x-shader/x-vertex">
             attribute vec4 vPosition;
             attribute vec4 vColor;
+            attribute vec3 vNormal;
+            varying vec3 vLighting;
             varying vec4 fColor;
+            varying highp vec3 fLighting;
 
             uniform mat4 modelViewMatrix;
             uniform mat4 projectionMatrix;
+            uniform mat4 normalMatrix;
+            uniform vec3 reverseLightDirection;
 
             void main() {
-                // Pass color information to the fragment shader
-                fColor = vColor;
-
                 // Apply transformations
                 gl_Position = projectionMatrix * modelViewMatrix * vPosition;
+
+                // Apply lighting effect
+                highp vec3 ambientLight = vec3(0.3, 0.3, 0.3);
+                highp vec3 directionalLightColor = vec3(1, 1, 1);
+
+                highp vec4 transformedNormal = normalMatrix * vec4(vNormal, 1.0);
+
+                highp float directional = max(dot(transformedNormal.xyz, reverseLightDirection), 0.0);
+                vLighting = ambientLight + (directionalLightColor * directional);
+
+                // Pass color and lighting information to the fragment shader
+                fColor = vColor;
+                fLighting = vLighting;
             }
         </script>
         <script id="fragment-shader" type="x-shader/x-fragment">
             precision mediump float;
             varying vec4 fColor;
+            varying highp vec3 fLighting;
             uniform float colorTheta;
 
             void main() {
@@ -33,7 +49,7 @@
                 float b = sin((fColor.z * pi) + colorTheta + (2.0 * offset)) / 2.0 + 0.5;
 
                 // Apply new color
-                gl_FragColor = vec4(r, g, b, 1.0);
+                gl_FragColor = vec4(vec3(r, g, b) * fLighting, 1.0);
             }
         </script>
         <script type="text/javascript" src="../Common/webgl-utils.js"></script>
