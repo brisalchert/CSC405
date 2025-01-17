@@ -10,9 +10,7 @@ var numElements = 36;
 var points = [];
 var colors = [];
 var normals = [];
-
-var colorTheta = 0.0;
-var colorThetaLoc;
+var texCoords = [];
 
 var near = -1.0;
 var far = 1.0;
@@ -26,7 +24,7 @@ var ytop = 0.5;
 var bottom = -0.5;
 
 var modelViewMatrix, projectionMatrix, normalMatrix, lightPosition;
-var modelViewMatrixLoc, projectionMatrixLoc, normalMatrixLoc, lightPositionLoc;
+var modelViewMatrixLoc, projectionMatrixLoc, normalMatrixLoc, lightPositionLoc, uSamplerLoc;
 var eye;
 const at = vec3(0.0, 0.0, 0.0);
 var up = vec3(0.0, 1.0, 0.0);
@@ -37,6 +35,8 @@ var startDragX = null;
 var startDragY = null;
 
 var perspectiveView = false;
+
+var texture;
 
 // Define the shape of the cube with vertex coordinates
 // in the model frame
@@ -63,6 +63,13 @@ var vertexColors = [
     [0.0, 1.0, 1.0, 1.0]   // cyan
 ];
 
+var textureCorners = [
+    [0.0, 0.0],
+    [0.0, 1.0],
+    [1.0, 1.0],
+    [1.0, 0.0]
+];
+
 function colorCube()
 {
     quad(1, 0, 3, 2);
@@ -76,6 +83,7 @@ function colorCube()
 function quad(a, b, c, d)
 {
     var indices = [a, b, c, a, c, d];
+    var texIndices = [0, 1, 2, 0, 2, 3];
 
     // Calculate normal for the given face
     var edge1 = subtract(vertices[b], vertices[a]);
@@ -85,8 +93,8 @@ function quad(a, b, c, d)
     // Add location, color, and normal to data arrays
     for (var i = 0; i < indices.length; i++) {
         points.push(vertices[indices[i]]);
-        colors.push(vertexColors[indices[i]]);
         normals.push(normal);
+        texCoords.push(textureCorners[texIndices[i]]);
     }
 }
 
@@ -111,15 +119,18 @@ window.onload = function init() {
     var program = initShaders(gl, "vertex-shader", "fragment-shader");
     gl.useProgram(program);
 
-    // Pass vertex color data to a new array buffer
-    var cBuffer = gl.createBuffer();
-    gl.bindBuffer(gl.ARRAY_BUFFER, cBuffer);
-    gl.bufferData(gl.ARRAY_BUFFER, flatten(colors), gl.STATIC_DRAW);
+    // Load texture
+    texture = loadTexture(gl, "https://plus.unsplash.com/premium_photo-1681400232080-d344759e6609?q=80&w=2574&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D");
 
-    // Link color data to the attribute in the vertex shader
-    var vColor = gl.getAttribLocation(program, "vColor");
-    gl.vertexAttribPointer(vColor, 4, gl.FLOAT, false, 0, 0);
-    gl.enableVertexAttribArray(vColor);
+    // Pass texture coordinate data to a new array buffer
+    var textureCoordBuffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, textureCoordBuffer);
+    gl.bufferData(gl.ARRAY_BUFFER, flatten(texCoords), gl.STATIC_DRAW);
+
+    // Link texture data to the attribute in the vertex shader
+    var vTextureCoord = gl.getAttribLocation(program, "vTextureCoord");
+    gl.vertexAttribPointer(vTextureCoord, 2, gl.FLOAT, false, 0, 0);
+    gl.enableVertexAttribArray(vTextureCoord);
 
     // Pass vertex position data to a new array buffer
     var vBuffer = gl.createBuffer();
@@ -142,11 +153,11 @@ window.onload = function init() {
     gl.enableVertexAttribArray(vNormal);
 
     // Get locations of uniforms in the vertex and fragment shaders
-    colorThetaLoc = gl.getUniformLocation(program, "colorTheta");
     modelViewMatrixLoc = gl.getUniformLocation(program, "modelViewMatrix");
     projectionMatrixLoc = gl.getUniformLocation(program, "projectionMatrix");
     normalMatrixLoc = gl.getUniformLocation(program, "normalMatrix");
     lightPositionLoc = gl.getUniformLocation(program, "lightPosition");
+    uSamplerLoc = gl.getUniformLocation(program, "uSampler");
 
     // Set event listeners for sliders
     document.getElementById("depthSlider").addEventListener("input", function(event) {
@@ -311,15 +322,21 @@ function render() {
     // Set light direction
     lightPosition = normalize(vec3(1.0, 1.0, 1.0))
 
-    // Increment color cycle
-    colorTheta = (colorTheta + (2 * Math.PI / 1000)) % (2 * Math.PI);
-
     // Pass new values to uniforms in the vertex and fragment shaders
-    gl.uniform1f(colorThetaLoc, colorTheta);
+    // gl.uniform1f(colorThetaLoc, colorTheta);
     gl.uniformMatrix4fv(modelViewMatrixLoc, false, flatten(modelViewMatrix));
     gl.uniformMatrix4fv(projectionMatrixLoc, false, flatten(projectionMatrix));
     gl.uniformMatrix4fv(normalMatrixLoc, false, flatten(normalMatrix));
     gl.uniform3fv(lightPositionLoc, lightPosition);
+
+    // Tell WebGL we want to affect texture unit 0
+    gl.activeTexture(gl.TEXTURE0);
+
+    // Bind the texture to texture unit 0
+    gl.bindTexture(gl.TEXTURE_2D, texture);
+
+    // Tell the shader we bound the texture to texture unit 0
+    gl.uniform1i(uSamplerLoc, 0);
 
     // Draw the cube
     gl.drawArrays(gl.TRIANGLES, 0, numElements);

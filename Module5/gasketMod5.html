@@ -4,11 +4,11 @@
         <title>Interactive Viewer</title>
         <script id="vertex-shader" type="x-shader/x-vertex">
             attribute vec4 vPosition;
-            attribute vec4 vColor;
             attribute vec3 vNormal;
-            varying vec3 fColor;
+            attribute vec2 vTextureCoord;
             varying vec3 transformedNormal;
             varying vec3 fPosition;
+            varying vec2 fTextureCoord;
 
             uniform mat4 modelViewMatrix;
             uniform mat4 projectionMatrix;
@@ -24,37 +24,28 @@
                 vec4 transformedPosition = modelViewMatrix * vPosition;
                 gl_Position = projectionMatrix * transformedPosition;
 
-                // Pass color information to the fragment shader
+                // Pass texture and normal information to the fragment shader
                 fPosition = vec3(transformedPosition) / transformedPosition.w;
                 transformedNormal = vec3(normalMatrix * vec4(vNormal, 1.0));
-                fColor = vec3(vColor);
+                fTextureCoord = vTextureCoord;
             }
         </script>
         <script id="fragment-shader" type="x-shader/x-fragment">
             precision mediump float;
-            varying vec3 fColor;
             varying vec3 transformedNormal;
             varying vec3 fPosition;
+            varying vec2 fTextureCoord;
 
-            uniform float colorTheta;
             uniform vec3 lightPosition;
+            uniform sampler2D uSampler;
 
             void main() {
-                float pi = (22.0 / 7.0);
-                float offset = (2.0 * pi / 3.0);
-
-                // Compute new color value from old color value, applying a rotation
-                // about the color wheel to achieve a cyclical rainbow
-                float r = sin((fColor.x * pi) + colorTheta) / 2.0 + 0.5;
-                float g = sin((fColor.y * pi) + colorTheta + offset) / 2.0 + 0.5;
-                float b = sin((fColor.z * pi) + colorTheta + (2.0 * offset)) / 2.0 + 0.5;
-
                 // Set diffuse, ambient, and specular colors, as well as shininess.
                 // Ambient light permeates the scene, applying to every surface. Diffuse
                 // reflections are identical across a polygon, since incoming light is
                 // scattered. Specular reflections are mirror-like reflections where the
                 // light reflects perfectly off of a point.
-                vec3 diffuseColor = vec3(r, g, b);
+                vec3 diffuseColor = vec3(texture2D(uSampler, fTextureCoord)); // Diffuse color uses color from texture
                 vec3 ambientColor = diffuseColor / 7.0;
                 vec3 specularColor = vec3(1.0, 1.0, 1.0);
                 const float shininess = 80.0;
@@ -85,6 +76,7 @@
         <script type="text/javascript" src="../Common/initShaders.js"></script>
         <script type="text/javascript" src="../Common/MV.js"></script>
         <script type="text/javascript" src="../Common/MV2.js"></script>
+        <script type="text/javascript" src="../Common/textures.js"></script>
         <script type="text/javascript" src="gasketMod5.js"></script>
     </head>
     <body>
