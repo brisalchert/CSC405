@@ -6,50 +6,79 @@
             attribute vec4 vPosition;
             attribute vec4 vColor;
             attribute vec3 vNormal;
-            varying vec3 vLighting;
-            varying vec4 fColor;
-            varying highp vec3 fLighting;
+            varying vec3 fColor;
+            varying vec3 transformedNormal;
+            varying vec3 fPosition;
 
             uniform mat4 modelViewMatrix;
             uniform mat4 projectionMatrix;
             uniform mat4 normalMatrix;
-            uniform vec3 reverseLightDirection;
 
             void main() {
-                // Apply transformations
-                gl_Position = projectionMatrix * modelViewMatrix * vPosition;
+                // Apply transformation/projection. The model view matrix positions
+                // objects to create the illusion of a change in the position and
+                // orientation of the camera. The projection matrix applies either
+                // orthogonal or perspective projection to the object and converts
+                // the viewing volume (originally in camera coordinates) to the
+                // corresponding clip coordinates.
+                vec4 transformedPosition = modelViewMatrix * vPosition;
+                gl_Position = projectionMatrix * transformedPosition;
 
-                // Apply lighting effect
-                highp vec3 ambientLight = vec3(0.3, 0.3, 0.3);
-                highp vec3 directionalLightColor = vec3(1, 1, 1);
-
-                highp vec4 transformedNormal = normalMatrix * vec4(vNormal, 1.0);
-
-                highp float directional = max(dot(transformedNormal.xyz, reverseLightDirection), 0.0);
-                vLighting = ambientLight + (directionalLightColor * directional);
-
-                // Pass color and lighting information to the fragment shader
-                fColor = vColor;
-                fLighting = vLighting;
+                // Pass color information to the fragment shader
+                fPosition = vec3(transformedPosition) / transformedPosition.w;
+                transformedNormal = vec3(normalMatrix * vec4(vNormal, 1.0));
+                fColor = vec3(vColor);
             }
         </script>
         <script id="fragment-shader" type="x-shader/x-fragment">
             precision mediump float;
-            varying vec4 fColor;
-            varying highp vec3 fLighting;
+            varying vec3 fColor;
+            varying vec3 transformedNormal;
+            varying vec3 fPosition;
+
             uniform float colorTheta;
+            uniform vec3 lightPosition;
 
             void main() {
                 float pi = (22.0 / 7.0);
                 float offset = (2.0 * pi / 3.0);
 
-                // Compute new color values from old color values
+                // Compute new color value from old color value, applying a rotation
+                // about the color wheel to achieve a cyclical rainbow
                 float r = sin((fColor.x * pi) + colorTheta) / 2.0 + 0.5;
                 float g = sin((fColor.y * pi) + colorTheta + offset) / 2.0 + 0.5;
                 float b = sin((fColor.z * pi) + colorTheta + (2.0 * offset)) / 2.0 + 0.5;
 
-                // Apply new color
-                gl_FragColor = vec4(vec3(r, g, b) * fLighting, 1.0);
+                // Set diffuse, ambient, and specular colors, as well as shininess.
+                // Ambient light permeates the scene, applying to every surface. Diffuse
+                // reflections are identical across a polygon, since incoming light is
+                // scattered. Specular reflections are mirror-like reflections where the
+                // light reflects perfectly off of a point.
+                vec3 diffuseColor = vec3(r, g, b);
+                vec3 ambientColor = diffuseColor / 7.0;
+                vec3 specularColor = vec3(1.0, 1.0, 1.0);
+                const float shininess = 80.0;
+
+                // Calculate normalized normal vector and light direction vector
+                vec3 norm = normalize(transformedNormal);
+                vec3 light = normalize(lightPosition - fPosition);
+
+                // Compute Lambertian reflection brightness for diffuse reflection
+                float lambertian = max(dot(norm, light), 0.0);
+                float specular = 0.0;
+                if (lambertian > 0.0) {
+                    // Compute the vector for reflected light
+                    vec3 reflected = -light - 2.0 * dot(norm, -light) * norm;
+                    // Compute the vector between the vertex and the viewer
+                    vec3 viewer = normalize(-fPosition);
+                    // Compute specular reflection brightness
+                    float specAngle = max(dot(reflected, viewer), 0.0);
+                    // Dim specular reflection brightness by a shininess value (higher is less shiny)
+                    specular = pow(specAngle, shininess);
+                }
+
+                // Apply new color as a combination of ambient, diffuse, and specular
+                gl_FragColor = vec4(ambientColor + lambertian * diffuseColor + specular * specularColor, 1.0);
             }
         </script>
         <script type="text/javascript" src="../Common/webgl-utils.js"></script>

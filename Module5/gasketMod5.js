@@ -25,8 +25,8 @@ var right = 0.5;
 var ytop = 0.5;
 var bottom = -0.5;
 
-var modelViewMatrix, projectionMatrix, normalMatrix, reverseLightDirection;
-var modelViewMatrixLoc, projectionMatrixLoc, normalMatrixLoc, reverseLightDirectionLoc;
+var modelViewMatrix, projectionMatrix, normalMatrix, lightPosition;
+var modelViewMatrixLoc, projectionMatrixLoc, normalMatrixLoc, lightPositionLoc;
 var eye;
 const at = vec3(0.0, 0.0, 0.0);
 var up = vec3(0.0, 1.0, 0.0);
@@ -78,19 +78,13 @@ function quad(a, b, c, d)
     var indices = [a, b, c, a, c, d];
 
     // Calculate normal for the given face
-    var edge1 = vec3(
-        vertices[b][0] - vertices[a][0],
-        vertices[b][1] - vertices[a][1],
-        vertices[b][2] - vertices[a][2]
-    );
-    var edge2 = vec3(
-        vertices[c][0] - vertices[a][0],
-        vertices[c][1] - vertices[a][1],
-        vertices[c][2] - vertices[a][2]
-    );
-    var normal = normalize(cross(edge1, edge2));
-    console.log(normal);
+    var edge1 = subtract(vertices[b], vertices[a]);
 
+    var edge2 = subtract(vertices[c], vertices[a]);
+
+    var normal = normalize(cross(edge1, edge2));
+
+    // Add location, color, and normal to data arrays
     for (var i = 0; i < indices.length; i++) {
         points.push(vertices[indices[i]]);
         colors.push(vertexColors[indices[i]]);
@@ -154,7 +148,7 @@ window.onload = function init() {
     modelViewMatrixLoc = gl.getUniformLocation(program, "modelViewMatrix");
     projectionMatrixLoc = gl.getUniformLocation(program, "projectionMatrix");
     normalMatrixLoc = gl.getUniformLocation(program, "normalMatrix");
-    reverseLightDirectionLoc = gl.getUniformLocation(program, "reverseLightDirection");
+    lightPositionLoc = gl.getUniformLocation(program, "lightPosition");
 
     // Set event listeners for sliders
     document.getElementById("depthSlider").addEventListener("input", function(event) {
@@ -281,16 +275,28 @@ function render() {
     // Ensure slider values match current radius
     document.getElementById("radiusSlider").value = radius;
 
-    // Calculate eye location
+    // Calculate eye location, using phi measured from the positive z-axis
+    // in the plane x = 0 and theta measured from the positive x-axis in the
+    // plane y = 0.
     eye = vec3(
         radius * Math.sin(theta) * Math.cos(phi),
         radius * Math.sin(phi),
         radius * Math.cos(theta) * Math.cos(phi)
     );
 
-    // Calculate new model-view and projection matrices
+    // Calculate new model-view matrix. The lookAt function positions the camera
+    // at "eye" facing towards "at," which defines a plane with normal vector
+    // (at - eye). The "up" direction orients the camera properly around its
+    // own z-axis, since all rotations still point towards "at."
     modelViewMatrix = lookAt(eye, at, up);
 
+    // Calculate the new projection matrix. Orthographic projection uses parallel
+    // projectors perpendicular to the projection plane, preserving object scale
+    // regardless of camera distance. Perspective projection shows depth at the
+    // expense of accurate measurements, and is accomplished through distorting
+    // the object with a normalization matrix prior to performing an orthogonal
+    // projection. This accomplishes perspective viewing while maintaining the
+    // standard pipeline of orthographic projections.
     if (perspectiveView) {
         var aspect = (right - left) / (ytop - bottom);
 
@@ -299,12 +305,13 @@ function render() {
         projectionMatrix = ortho(left, right, bottom, ytop, near, far);
     }
 
-    // Calculate normal matrix
+    // Calculate normal matrix, which transforms the vertices' normal vectors
+    // based on the current orientation of the model view matrix.
     normalMatrix = inverse(modelViewMatrix);
     normalMatrix = transpose(normalMatrix);
 
     // Set light direction
-    reverseLightDirection = normalize(vec3(0.5, 0.7, 1.0))
+    lightPosition = normalize(vec3(1.0, 1.0, 1.0))
 
     // Increment color cycle
     colorTheta = (colorTheta + (2 * Math.PI / 1000)) % (2 * Math.PI);
@@ -314,7 +321,7 @@ function render() {
     gl.uniformMatrix4fv(modelViewMatrixLoc, false, flatten(modelViewMatrix));
     gl.uniformMatrix4fv(projectionMatrixLoc, false, flatten(projectionMatrix));
     gl.uniformMatrix4fv(normalMatrixLoc, false, flatten(normalMatrix));
-    gl.uniform3fv(reverseLightDirectionLoc, reverseLightDirection);
+    gl.uniform3fv(lightPositionLoc, lightPosition);
 
     // Draw the cube
     gl.drawArrays(gl.TRIANGLES, 0, numElements);
