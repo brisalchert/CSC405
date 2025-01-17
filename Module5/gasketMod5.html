@@ -49,34 +49,32 @@
         <br/>
         <p>Click and drag on the image to position the camera!</p>
         <div>
-            Depth: .05<input id="depthSlider" type="range"
-             min=".05" max="3" step="0.01" value="3" style="width: 400px" />
-             3
+            <button id="perspectiveButton">Toggle perspective/orthogonal view</button>
         </div>
         <div>
-            Radius: 0.05<input id="radiusSlider" type="range"
-             min="0.05" max="2" step="0.01" value="0.05" style="width: 400px" />
+            Depth of clipping volume: .05<input id="depthSlider" type="range"
+             min=".05" max="2" step="0.01" value="2" style="width: 400px" />
              2
         </div>
         <div>
-            Theta: 0<input id="thetaSlider" type="range"
+            Radius (camera distance): 0.05<input id="radiusSlider" type="range"
+             min="0.05" max="2" step="0.01" value="0.5" style="width: 400px" />
+             2
+        </div>
+        <div>
+            Theta (horizontal angle): 0<input id="thetaSlider" type="range"
              min="0" max="360" step="2.5" value="0" style="width: 400px" />
              360
         </div>
         <div>
-            Phi: -90<input id="phiSlider" type="range"
+            Phi (vertical angle): -90<input id="phiSlider" type="range"
              min="-90" max="90" step="2.5" value="0" style="width: 400px" />
              90
         </div>
         <div>
-            Width: 1<input id="widthSlider" type="range"
-             min="1" max="10" step="0.05" value="1" style="width: 400px" />
-             20
-        </div>
-        <div>
-            Height: 1<input id="heightSlider" type="range"
-             min="1" max="10" step="0.05" value="1" style="width: 400px" />
-             20
+            Aspect ratio (value:1): 1<input id="aspectSlider" type="range"
+             min="1" max="5" step="0.05" value="1" style="width: 400px" />
+             5
         </div>
     </body>
 </html>

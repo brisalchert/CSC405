@@ -10,9 +10,9 @@ var numElements = 36;
 var colorTheta = 0.0;
 var colorThetaLoc;
 
-var near = -1.5;
-var far = 1.5;
-var radius = 0.05;
+var near = -1.0;
+var far = 1.0;
+var radius = 0.5;
 var theta  = 0.0;
 var phi    = 0.0;
 
@@ -31,6 +31,8 @@ var invertedCamera = false;
 
 var startDragX = null;
 var startDragY = null;
+
+var perspectiveView = false;
 
 // Define the shape of the cube with vertex coordinates
 // in the model frame
@@ -86,6 +88,7 @@ window.onload = function init() {
     gl.clearColor(0.0, 0.0, 0.0, 1.0);
 
     gl.enable(gl.DEPTH_TEST);
+    gl.enable(gl.CULL_FACE);
 
     // Load vertex and fragment shaders
     var program = initShaders(gl, "vertex-shader", "fragment-shader");
@@ -124,8 +127,14 @@ window.onload = function init() {
 
     // Set event listeners for sliders
     document.getElementById("depthSlider").addEventListener("input", function(event) {
-        far = event.target.value/2;
-        near = -event.target.value/2;
+        // Set near and far planes based on type of projection
+        if (perspectiveView) {
+            far = event.target.value / 2.0 + 1.05;
+            near = 1.05 - event.target.value / 2.0;
+        } else {
+            far = event.target.value / 2.0;
+            near = -event.target.value / 2.0;
+        }
     });
     document.getElementById("radiusSlider").addEventListener("input", function(event) {
        radius = event.target.value;
@@ -136,14 +145,23 @@ window.onload = function init() {
     document.getElementById("phiSlider").addEventListener("input", function(event) {
         phi = event.target.value* Math.PI/180.0;
     });
-    document.getElementById("heightSlider").addEventListener("input", function(event) {
-        ytop = event.target.value/2;
-        bottom = -event.target.value/2;
-    });
-    document.getElementById("widthSlider").addEventListener("input", function(event) {
+    document.getElementById("aspectSlider").addEventListener("input", function(event) {
         right = event.target.value/2;
         left = -event.target.value/2;
     });
+
+    // Set event listener for perspective button
+    document.getElementById("perspectiveButton").onclick = function() {
+        if (perspectiveView) {
+            far -= 1.05;
+            near -= 1.05;
+            perspectiveView = false;
+        } else {
+            far += 1.05;
+            near += 1.05;
+            perspectiveView = true;
+        }
+    };
 
     // Set mouse interactivity event handlers
     canvas.onmousedown = mouseDownHandler;
@@ -216,7 +234,14 @@ function render() {
 
     // Calculate new model-view and projection matrices
     modelViewMatrix = lookAt(eye, at, up);
-    projectionMatrix = ortho(left, right, bottom, ytop, near, far);
+
+    if (perspectiveView) {
+        var aspect = (right - left) / (ytop - bottom);
+
+        projectionMatrix = perspective(90.0, aspect, near, far);
+    } else {
+        projectionMatrix = ortho(left, right, bottom, ytop, near, far);
+    }
 
     // Increment color cycle
     colorTheta = (colorTheta + (2 * Math.PI / 1000)) % (2 * Math.PI);
