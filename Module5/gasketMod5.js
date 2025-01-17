@@ -167,17 +167,37 @@ window.onload = function init() {
     canvas.onmousedown = mouseDownHandler;
     canvas.onmousemove = mouseMoveHandler;
     document.onmouseup = mouseUpHandler; // Ensure letting go outside canvas stops drag
+    canvas.addEventListener("wheel", mouseWheelHandler);
 
     // Start the render loop
     render();
 }
 
+// Function for zooming in and out
+function mouseWheelHandler(e) {
+    var delta = Math.max(-1, Math.min(1, (e.wheelDelta || -e.detail)));
+
+    radius -= 0.03 * delta;
+
+    // Prevent radius from going out of range
+    if (radius < 0.05) {
+        radius = 0.05;
+    } else if (radius > 2.0) {
+        radius = 2.0;
+    }
+
+    // Prevent scrolling from moving the page
+    e.preventDefault();
+}
+
+// Function for initiating a drag by clicking and holding
 function mouseDownHandler(e) {
     // Set starting location for mouse drag
     startDragX = e.clientX;
     startDragY = e.clientY;
 }
 
+// Function for moving the camera during a drag
 function mouseMoveHandler(e) {
     // Ensure a drag is started before making the movement
     if (startDragX === null || startDragY === null)
@@ -189,12 +209,14 @@ function mouseMoveHandler(e) {
     startDragY = e.clientY;
 }
 
+// Function for ending a drag by releasing the button
 function mouseUpHandler() {
     // Remove starting location to signal end of drag
     startDragX = null;
     startDragY = null;
 }
 
+// Function for dragging the camera with the mouse
 function drag(deltaX, deltaY) {
     var radPerPixel = (Math.PI / 450);
     var deltaTheta = radPerPixel * deltaX;
@@ -224,6 +246,9 @@ function render() {
     // Ensure slider values match current rotation
     document.getElementById("thetaSlider").value = (theta * 180.0 / Math.PI);
     document.getElementById("phiSlider").value = (phi * 180.0 / Math.PI);
+
+    // Ensure slider values match current radius
+    document.getElementById("radiusSlider").value = radius;
 
     // Calculate eye location
     eye = vec3(
