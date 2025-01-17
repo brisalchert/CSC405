@@ -79,9 +79,7 @@ function quad(a, b, c, d)
 
     // Calculate normal for the given face
     var edge1 = subtract(vertices[b], vertices[a]);
-
     var edge2 = subtract(vertices[c], vertices[a]);
-
     var normal = normalize(cross(edge1, edge2));
 
     // Add location, color, and normal to data arrays
