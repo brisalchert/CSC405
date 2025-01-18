@@ -147,7 +147,6 @@ function mouseWheelHandler(e) {
 }
 
 function mouseDownHandler(e) {
-    // Set starting location for mouse drag
     startDragX = e.clientX;
     startDragY = e.clientY;
 }
@@ -174,10 +173,8 @@ function drag(deltaX, deltaY) {
     var deltaTheta = radPerPixel * deltaX;
     var deltaPhi = radPerPixel * deltaY;
 
-    // Add deltaPhi for vertical rotation
     phi += deltaPhi;
 
-    // Subtract deltaTheta for horizontal rotation
     theta -= deltaTheta;
 }
 
@@ -208,6 +205,7 @@ function drawScene(gl, programInfo) {
     // Calculate eye location, using phi measured from the positive z-axis
     // in the plane x = 0 and theta measured from the positive x-axis in the
     // plane y = 0.
+
     eye = vec3(
         radius * Math.sin(theta) * Math.cos(phi),
         radius * Math.sin(phi),
@@ -242,10 +240,8 @@ function drawScene(gl, programInfo) {
     normalMatrix = inverse(modelViewMatrix);
     normalMatrix = transpose(normalMatrix);
 
-    // Set light position
     lightPosition = normalize(vec3(1.0, 1.0, 1.0))
 
-    // Increment color cycle
     colorTheta = (colorTheta + (2 * Math.PI / 1000)) % (2 * Math.PI);
 
     // Pass new values to uniforms in the vertex and fragment shaders
@@ -255,16 +251,11 @@ function drawScene(gl, programInfo) {
     gl.uniformMatrix4fv(programInfo.uniformLocations.normalMatrix, false, flatten(normalMatrix));
     gl.uniform3fv(programInfo.uniformLocations.lightPosition, lightPosition);
 
-    // Tell WebGL we want to affect texture unit 0
+    // Tell the shader that the texture is bound to texture unit 0
     gl.activeTexture(gl.TEXTURE0);
-
-    // Bind the texture to texture unit 0
     gl.bindTexture(gl.TEXTURE_2D, texture);
-
-    // Tell the shader we bound the texture to texture unit 0
     gl.uniform1i(programInfo.uniformLocations.sampler, 0);
 
-    // Draw the cube
     gl.drawArrays(gl.TRIANGLES, 0, numElements);
 }
 
