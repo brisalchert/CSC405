@@ -21,6 +21,7 @@
                 // orthogonal or perspective projection to the object and converts
                 // the viewing volume (originally in camera coordinates) to the
                 // corresponding clip coordinates.
+
                 vec4 transformedPosition = modelViewMatrix * vPosition;
                 gl_Position = projectionMatrix * transformedPosition;
 
@@ -57,6 +58,7 @@
                 // reflections are identical across a polygon, since incoming light is
                 // scattered. Specular reflections are mirror-like reflections where the
                 // light reflects perfectly off of a point.
+
                 vec3 diffuseColor = vec3(r, g, b); // Diffuse color uses color from texture
                 vec3 ambientColor = diffuseColor / 7.0;
                 vec3 specularColor = vec3(1.0, 1.0, 1.0);

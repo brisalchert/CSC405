@@ -301,6 +301,7 @@ function render() {
     // at "eye" facing towards "at," which defines a plane with normal vector
     // (at - eye). The "up" direction orients the camera properly around its
     // own z-axis, since all rotations still point towards "at."
+
     modelViewMatrix = lookAt(eye, at, up);
 
     // Calculate the new projection matrix. Orthographic projection uses parallel
@@ -310,6 +311,7 @@ function render() {
     // the object with a normalization matrix prior to performing an orthogonal
     // projection. This accomplishes perspective viewing while maintaining the
     // standard pipeline of orthographic projections.
+
     if (perspectiveView) {
         var aspect = (right - left) / (ytop - bottom);
 
