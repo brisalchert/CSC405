@@ -67,15 +67,15 @@ window.onload = function init() {
         }
     };
 
-    // Initialize all attribute buffers
-    const buffers = initBuffers(gl);
+    // Initialize interleaved attribute buffer
+    const buffer = initBuffer(gl, numElements);
 
     texture = loadTexture(gl, "https://plus.unsplash.com/premium_photo-1681400232080-d344759e6609?q=80&w=2574&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D");
 
     // Link buffer data to vertex shader attributes
-    setPositionAttribute(gl, buffers, programInfo);
-    setTextureAttribute(gl, buffers, programInfo);
-    setNormalAttribute(gl, buffers, programInfo);
+    setPositionAttribute(gl, buffer, programInfo);
+    setTextureAttribute(gl, buffer, programInfo);
+    setNormalAttribute(gl, buffer, programInfo);
 
     // Set event listeners for sliders
     document.getElementById("depthSlider").addEventListener("input", function(event) {
@@ -122,7 +122,7 @@ window.onload = function init() {
     canvas.addEventListener("wheel", mouseWheelHandler);
 
     function render() {
-        drawScene(gl, programInfo, buffers)
+        drawScene(gl, programInfo)
 
         requestAnimFrame(render);
     }
@@ -181,7 +181,7 @@ function drag(deltaX, deltaY) {
     theta -= deltaTheta;
 }
 
-function drawScene(gl, programInfo, buffers) {
+function drawScene(gl, programInfo) {
     gl.clearColor(0.0, 0.0, 0.0, 1.0);
     gl.clearDepth(1.0);
     gl.enable(gl.DEPTH_TEST);
@@ -269,13 +269,13 @@ function drawScene(gl, programInfo, buffers) {
 }
 
 // Links position data in buffer to the vertex shader attribute
-function setPositionAttribute(gl, buffers, programInfo) {
+function setPositionAttribute(gl, buffer, programInfo) {
     const numComponents = 4;
     const type = gl.FLOAT;
     const normalize = false;
-    const stride = 0;
-    const offset = 0;
-    gl.bindBuffer(gl.ARRAY_BUFFER, buffers.position);
+    const stride = buffer.stride;
+    const offset = buffer.positionOffset;
+    gl.bindBuffer(gl.ARRAY_BUFFER, buffer.vertexBuffer);
     gl.vertexAttribPointer(
         programInfo.attribLocations.vertexPosition,
         numComponents,
@@ -288,13 +288,13 @@ function setPositionAttribute(gl, buffers, programInfo) {
 }
 
 // Links color data in buffer to the vertex shader attribute
-function setColorAttribute(gl, buffers, programInfo) {
+function setColorAttribute(gl, buffer, programInfo) {
     const numComponents = 4;
     const type = gl.FLOAT;
     const normalize = false;
-    const stride = 0;
-    const offset = 0;
-    gl.bindBuffer(gl.ARRAY_BUFFER, buffers.color);
+    const stride = buffer.stride;
+    const offset = buffer.colorOffset;
+    gl.bindBuffer(gl.ARRAY_BUFFER, buffer.vertexBuffer);
     gl.vertexAttribPointer(
         programInfo.attribLocations.vertexColor,
         numComponents,
@@ -307,13 +307,13 @@ function setColorAttribute(gl, buffers, programInfo) {
 }
 
 // Links texture data in buffer to the vertex shader attribute
-function setTextureAttribute(gl, buffers, programInfo) {
+function setTextureAttribute(gl, buffer, programInfo) {
     const numComponents = 2;
     const type = gl.FLOAT;
     const normalize = false;
-    const stride = 0;
-    const offset = 0;
-    gl.bindBuffer(gl.ARRAY_BUFFER, buffers.texture);
+    const stride = buffer.stride;
+    const offset = buffer.textureOffset;
+    gl.bindBuffer(gl.ARRAY_BUFFER, buffer.vertexBuffer);
     gl.vertexAttribPointer(
         programInfo.attribLocations.vertexTexture,
         numComponents,
@@ -326,13 +326,13 @@ function setTextureAttribute(gl, buffers, programInfo) {
 }
 
 // Links normal data in buffer to the vertex shader attribute
-function setNormalAttribute(gl, buffers, programInfo) {
+function setNormalAttribute(gl, buffer, programInfo) {
     const numComponents = 3;
     const type = gl.FLOAT;
     const normalize = false;
-    const stride = 0;
-    const offset = 0;
-    gl.bindBuffer(gl.ARRAY_BUFFER, buffers.normal);
+    const stride = buffer.stride;
+    const offset = buffer.normalOffset;
+    gl.bindBuffer(gl.ARRAY_BUFFER, buffer.vertexBuffer);
     gl.vertexAttribPointer(
         programInfo.attribLocations.vertexNormal,
         numComponents,

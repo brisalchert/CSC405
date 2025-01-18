@@ -36,22 +36,41 @@ const vertexColors = [
     [0.0, 1.0, 1.0, 1.0]   // cyan
 ];
 
-function initBuffers(gl) {
-    const positionBuffer = initPositionBuffer(gl);
-    const textureBuffer = initTextureBuffer(gl);
-    const normalBuffer = initNormalBuffer(gl);
+function initBuffer(gl, numElements) {
+    const buffer = initVertexBuffer(gl, numElements);
 
     return {
-        position: positionBuffer,
-        texture: textureBuffer,
-        normal: normalBuffer
+        vertexBuffer: buffer,
+        stride: 36, // Bytes between consecutive interleaved attributes
+        positionOffset: 0, // Offset for each attribute
+        textureOffset: 16,
+        normalOffset: 24
     };
 }
 
-function initPositionBuffer(gl) {
-    const positionBuffer = gl.createBuffer();
-    gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+function initVertexBuffer(gl, numElements) {
+    const vertexBuffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer);
 
+    var positions = initPositions();
+    var textureCoords = initTextureCoords();
+    var normals = initNormals();
+
+    var attributes = [];
+
+    // Interleave vertex attributes within the same buffer
+    for (var i = 0; i < numElements; i++) {
+        attributes.push(positions[i]);
+        attributes.push(textureCoords[i]);
+        attributes.push(normals[i]);
+    }
+
+    gl.bufferData(gl.ARRAY_BUFFER, flatten(attributes), gl.STATIC_DRAW);
+
+    return vertexBuffer;
+}
+
+function initPositions() {
     var positions = [];
 
     for (var i = 0; i < indices.length; i++) {
@@ -63,15 +82,10 @@ function initPositionBuffer(gl) {
         }
     }
 
-    gl.bufferData(gl.ARRAY_BUFFER, flatten(positions), gl.STATIC_DRAW);
-
-    return positionBuffer;
+    return positions;
 }
 
-function initTextureBuffer(gl) {
-    const textureBuffer = gl.createBuffer();
-    gl.bindBuffer(gl.ARRAY_BUFFER, textureBuffer);
-
+function initTextureCoords() {
     var textureCoords = [];
 
     for (var i = 0; i < indices.length; i++) {
@@ -82,15 +96,10 @@ function initTextureBuffer(gl) {
         }
     }
 
-    gl.bufferData(gl.ARRAY_BUFFER, flatten(textureCoords), gl.STATIC_DRAW);
-
-    return textureBuffer;
+    return textureCoords;
 }
 
-function initColorBuffer(gl) {
-    const colorBuffer = gl.createBuffer();
-    gl.bindBuffer(gl.ARRAY_BUFFER, colorBuffer);
-
+function initColors() {
     var colors = [];
 
     for (var i = 0; i < indices.length; i++) {
@@ -102,15 +111,10 @@ function initColorBuffer(gl) {
         }
     }
 
-    gl.bufferData(gl.ARRAY_BUFFER, flatten(colors), gl.STATIC_DRAW);
-
-    return colorBuffer;
+    return colors;
 }
 
-function initNormalBuffer(gl) {
-    const normalBuffer = gl.createBuffer();
-    gl.bindBuffer(gl.ARRAY_BUFFER, normalBuffer);
-
+function initNormals() {
     var normals = [];
 
     for (var i = 0; i < indices.length; i++) {
@@ -126,7 +130,5 @@ function initNormalBuffer(gl) {
         }
     }
 
-    gl.bufferData(gl.ARRAY_BUFFER, flatten(normals), gl.STATIC_DRAW);
-
-    return normalBuffer;
+    return normals;
 }
