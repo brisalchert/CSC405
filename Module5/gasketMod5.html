@@ -10,9 +10,9 @@
             varying vec3 fPosition;
             varying vec2 fTextureCoord;
 
-            uniform mat4 modelViewMatrix;
-            uniform mat4 projectionMatrix;
-            uniform mat4 normalMatrix;
+            uniform mat4 uModelViewMatrix;
+            uniform mat4 uProjectionMatrix;
+            uniform mat4 uNormalMatrix;
 
             void main() {
                 // Apply transformation/projection. The model view matrix positions
@@ -22,12 +22,12 @@
                 // the viewing volume (originally in camera coordinates) to the
                 // corresponding clip coordinates.
 
-                vec4 transformedPosition = modelViewMatrix * vPosition;
-                gl_Position = projectionMatrix * transformedPosition;
+                vec4 transformedPosition = uModelViewMatrix * vPosition;
+                gl_Position = uProjectionMatrix * transformedPosition;
 
                 // Pass texture and normal information to the fragment shader
                 fPosition = vec3(transformedPosition) / transformedPosition.w;
-                transformedNormal = vec3(normalMatrix * vec4(vNormal, 1.0));
+                transformedNormal = vec3(uNormalMatrix * vec4(vNormal, 1.0));
                 fTextureCoord = vTextureCoord;
             }
         </script>
@@ -37,9 +37,9 @@
             varying vec3 fPosition;
             varying vec2 fTextureCoord;
 
-            uniform vec3 lightPosition;
+            uniform vec3 uLightPosition;
             uniform sampler2D uSampler;
-            uniform float colorTheta;
+            uniform float uColorTheta;
 
             void main() {
                 float pi = (22.0 / 7.0);
@@ -49,9 +49,9 @@
 
                 // Compute new color value from old color value, applying a rotation
                 // about the color wheel to achieve a cyclical rainbow
-                float r = sin((textureColor.x * pi) + colorTheta) / 2.0 + 0.5;
-                float g = sin((textureColor.y * pi) + colorTheta + offset) / 2.0 + 0.5;
-                float b = sin((textureColor.z * pi) + colorTheta + (2.0 * offset)) / 2.0 + 0.5;
+                float r = sin((textureColor.x * pi) + uColorTheta) / 2.0 + 0.5;
+                float g = sin((textureColor.y * pi) + uColorTheta + offset) / 2.0 + 0.5;
+                float b = sin((textureColor.z * pi) + uColorTheta + (2.0 * offset)) / 2.0 + 0.5;
 
                 // Set diffuse, ambient, and specular colors, as well as shininess.
                 // Ambient light permeates the scene, applying to every surface. Diffuse
@@ -66,7 +66,7 @@
 
                 // Calculate normalized normal vector and light direction vector
                 vec3 norm = normalize(transformedNormal);
-                vec3 light = normalize(lightPosition - fPosition);
+                vec3 light = normalize(uLightPosition - fPosition);
 
                 // Compute diffuse reflection brightness for diffuse reflection
                 float diffuse = max(dot(norm, light), 0.0);
@@ -91,6 +91,7 @@
         <script type="text/javascript" src="../Common/MV.js"></script>
         <script type="text/javascript" src="../Common/MV2.js"></script>
         <script type="text/javascript" src="../Common/textures.js"></script>
+        <script type="text/javascript" src="initBuffers.js"></script>
         <script type="text/javascript" src="gasketMod5.js"></script>
     </head>
     <body>

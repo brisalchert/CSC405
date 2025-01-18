@@ -5,15 +5,9 @@ var canvas;
 /** @type {WebGLRenderingContext} */
 var gl;
 
-var numElements = 36;
-
-var points = [];
-var colors = [];
-var normals = [];
-var texCoords = [];
+const numElements = 36;
 
 var colorTheta = 0.0;
-var colorThetaLoc;
 
 var near = -1.0;
 var far = 1.0;
@@ -27,7 +21,6 @@ var ytop = 0.5;
 var bottom = -0.5;
 
 var modelViewMatrix, projectionMatrix, normalMatrix, lightPosition;
-var modelViewMatrixLoc, projectionMatrixLoc, normalMatrixLoc, lightPositionLoc, uSamplerLoc;
 var eye;
 const at = vec3(0.0, 0.0, 0.0);
 var up = vec3(0.0, 1.0, 0.0);
@@ -41,66 +34,6 @@ var perspectiveView = false;
 
 var texture;
 
-// Define the shape of the cube with vertex coordinates
-// in the model frame
-var vertices = [
-    vec4(-0.11, -0.11,  0.11, 1.0),
-    vec4(-0.11,  0.11,  0.11, 1.0),
-    vec4( 0.11,  0.11,  0.11, 1.0),
-    vec4( 0.11, -0.11,  0.11, 1.0),
-    vec4(-0.11, -0.11, -0.11, 1.0),
-    vec4(-0.11,  0.11, -0.11, 1.0),
-    vec4( 0.11,  0.11, -0.11, 1.0),
-    vec4( 0.11, -0.11, -0.11, 1.0)
-];
-
-// Define the initial color values for each vertex
-var vertexColors = [
-    [0.0, 0.0, 0.0, 1.0],  // black
-    [1.0, 0.0, 0.0, 1.0],  // red
-    [1.0, 1.0, 0.0, 1.0],  // yellow
-    [0.0, 1.0, 0.0, 1.0],  // green
-    [0.0, 0.0, 1.0, 1.0],  // blue
-    [1.0, 0.0, 1.0, 1.0],  // magenta
-    [1.0, 1.0, 1.0, 1.0],  // white
-    [0.0, 1.0, 1.0, 1.0]   // cyan
-];
-
-var textureCorners = [
-    [0.0, 0.0],
-    [0.0, 1.0],
-    [1.0, 1.0],
-    [1.0, 0.0]
-];
-
-function colorCube()
-{
-    quad(1, 0, 3, 2);
-    quad(2, 3, 7, 6);
-    quad(3, 0, 4, 7);
-    quad(6, 5, 1, 2);
-    quad(4, 5, 6, 7);
-    quad(5, 4, 0, 1);
-}
-
-function quad(a, b, c, d)
-{
-    var indices = [a, b, c, a, c, d];
-    var texIndices = [0, 1, 2, 0, 2, 3];
-
-    // Calculate normal for the given face
-    var edge1 = subtract(vertices[b], vertices[a]);
-    var edge2 = subtract(vertices[c], vertices[a]);
-    var normal = normalize(cross(edge1, edge2));
-
-    // Add location, color, and normal to data arrays
-    for (var i = 0; i < indices.length; i++) {
-        points.push(vertices[indices[i]]);
-        normals.push(normal);
-        texCoords.push(textureCorners[texIndices[i]]);
-    }
-}
-
 window.onload = function init() {
     canvas = document.getElementById("gl-canvas");
     gl = WebGLUtils.setupWebGL(canvas);
@@ -108,60 +41,41 @@ window.onload = function init() {
         alert("WebGL isn't available");
     }
 
-    // Initialize points, colors, and normals
-    colorCube();
-
     // Set viewport and set background color to black
     gl.viewport(0, 0, canvas.width, canvas.height);
     gl.clearColor(0.0, 0.0, 0.0, 1.0);
-
-    gl.enable(gl.DEPTH_TEST);
-    gl.enable(gl.CULL_FACE);
+    gl.clear(gl.COLOR_BUFFER_BIT);
 
     // Load vertex and fragment shaders
-    var program = initShaders(gl, "vertex-shader", "fragment-shader");
-    gl.useProgram(program);
+    const shaderProgram = initShaders(gl, "vertex-shader", "fragment-shader");
+    gl.useProgram(shaderProgram);
 
-    // Load texture
+    const programInfo = {
+        program: shaderProgram,
+        attribLocations: {
+            vertexPosition: gl.getAttribLocation(shaderProgram, "vPosition"),
+            vertexNormal: gl.getAttribLocation(shaderProgram, "vNormal"),
+            vertexTexture: gl.getAttribLocation(shaderProgram, "vTextureCoord")
+        },
+        uniformLocations: {
+            modelViewMatrix: gl.getUniformLocation(shaderProgram, "uModelViewMatrix"),
+            projectionMatrix: gl.getUniformLocation(shaderProgram, "uProjectionMatrix"),
+            normalMatrix: gl.getUniformLocation(shaderProgram, "uNormalMatrix"),
+            lightPosition: gl.getUniformLocation(shaderProgram, "uLightPosition"),
+            sampler: gl.getUniformLocation(shaderProgram, "uSampler"),
+            colorTheta: gl.getUniformLocation(shaderProgram, "uColorTheta")
+        }
+    };
+
+    // Initialize all attribute buffers
+    const buffers = initBuffers(gl);
+
     texture = loadTexture(gl, "https://plus.unsplash.com/premium_photo-1681400232080-d344759e6609?q=80&w=2574&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D");
 
-    // Pass texture coordinate data to a new array buffer
-    var textureCoordBuffer = gl.createBuffer();
-    gl.bindBuffer(gl.ARRAY_BUFFER, textureCoordBuffer);
-    gl.bufferData(gl.ARRAY_BUFFER, flatten(texCoords), gl.STATIC_DRAW);
-
-    // Link texture data to the attribute in the vertex shader
-    var vTextureCoord = gl.getAttribLocation(program, "vTextureCoord");
-    gl.vertexAttribPointer(vTextureCoord, 2, gl.FLOAT, false, 0, 0);
-    gl.enableVertexAttribArray(vTextureCoord);
-
-    // Pass vertex position data to a new array buffer
-    var vBuffer = gl.createBuffer();
-    gl.bindBuffer(gl.ARRAY_BUFFER, vBuffer);
-    gl.bufferData(gl.ARRAY_BUFFER, flatten(points), gl.STATIC_DRAW);
-
-    // Link position data to the attribute in the vertex shader
-    var vPosition = gl.getAttribLocation(program, "vPosition");
-    gl.vertexAttribPointer(vPosition, 4, gl.FLOAT, false, 0, 0);
-    gl.enableVertexAttribArray(vPosition);
-
-    // Pass vertex normals to a new array buffer
-    var normalBuffer = gl.createBuffer();
-    gl.bindBuffer(gl.ARRAY_BUFFER, normalBuffer);
-    gl.bufferData(gl.ARRAY_BUFFER, flatten(normals), gl.STATIC_DRAW);
-
-    // Link normals data to the attribute in the vertex shader
-    var vNormal = gl.getAttribLocation(program, "vNormal");
-    gl.vertexAttribPointer(vNormal, 3, gl.FLOAT, false, 0, 0);
-    gl.enableVertexAttribArray(vNormal);
-
-    // Get locations of uniforms in the vertex and fragment shaders
-    colorThetaLoc = gl.getUniformLocation(program, "colorTheta");
-    modelViewMatrixLoc = gl.getUniformLocation(program, "modelViewMatrix");
-    projectionMatrixLoc = gl.getUniformLocation(program, "projectionMatrix");
-    normalMatrixLoc = gl.getUniformLocation(program, "normalMatrix");
-    lightPositionLoc = gl.getUniformLocation(program, "lightPosition");
-    uSamplerLoc = gl.getUniformLocation(program, "uSampler");
+    // Link buffer data to vertex shader attributes
+    setPositionAttribute(gl, buffers, programInfo);
+    setTextureAttribute(gl, buffers, programInfo);
+    setNormalAttribute(gl, buffers, programInfo);
 
     // Set event listeners for sliders
     document.getElementById("depthSlider").addEventListener("input", function(event) {
@@ -207,11 +121,15 @@ window.onload = function init() {
     document.onmouseup = mouseUpHandler; // Ensure letting go outside canvas stops drag
     canvas.addEventListener("wheel", mouseWheelHandler);
 
-    // Start the render loop
-    render();
+    function render() {
+        drawScene(gl, programInfo, buffers)
+
+        requestAnimFrame(render);
+    }
+
+    requestAnimFrame(render);
 }
 
-// Function for zooming in and out
 function mouseWheelHandler(e) {
     var delta = Math.max(-1, Math.min(1, (e.wheelDelta || -e.detail)));
 
@@ -228,14 +146,12 @@ function mouseWheelHandler(e) {
     e.preventDefault();
 }
 
-// Function for initiating a drag by clicking and holding
 function mouseDownHandler(e) {
     // Set starting location for mouse drag
     startDragX = e.clientX;
     startDragY = e.clientY;
 }
 
-// Function for moving the camera during a drag
 function mouseMoveHandler(e) {
     // Ensure a drag is started before making the movement
     if (startDragX === null || startDragY === null)
@@ -247,14 +163,12 @@ function mouseMoveHandler(e) {
     startDragY = e.clientY;
 }
 
-// Function for ending a drag by releasing the button
 function mouseUpHandler() {
     // Remove starting location to signal end of drag
     startDragX = null;
     startDragY = null;
 }
 
-// Function for dragging the camera with the mouse
 function drag(deltaX, deltaY) {
     var radPerPixel = (Math.PI / 450);
     var deltaTheta = radPerPixel * deltaX;
@@ -267,7 +181,12 @@ function drag(deltaX, deltaY) {
     theta -= deltaTheta;
 }
 
-function render() {
+function drawScene(gl, programInfo, buffers) {
+    gl.clearColor(0.0, 0.0, 0.0, 1.0);
+    gl.clearDepth(1.0);
+    gl.enable(gl.DEPTH_TEST);
+    gl.enable(gl.CULL_FACE);
+
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
     // Ensure angles are within range for sliders
@@ -281,11 +200,9 @@ function render() {
 
     phi = Math.min(Math.max(phi, (-Math.PI / 2.0)), (Math.PI / 2.0));
 
-    // Ensure slider values match current rotation
+    // Ensure slider values match current camera orientation
     document.getElementById("thetaSlider").value = (theta * 180.0 / Math.PI);
     document.getElementById("phiSlider").value = (phi * 180.0 / Math.PI);
-
-    // Ensure slider values match current radius
     document.getElementById("radiusSlider").value = radius;
 
     // Calculate eye location, using phi measured from the positive z-axis
@@ -325,18 +242,18 @@ function render() {
     normalMatrix = inverse(modelViewMatrix);
     normalMatrix = transpose(normalMatrix);
 
-    // Set light direction
+    // Set light position
     lightPosition = normalize(vec3(1.0, 1.0, 1.0))
 
     // Increment color cycle
     colorTheta = (colorTheta + (2 * Math.PI / 1000)) % (2 * Math.PI);
 
     // Pass new values to uniforms in the vertex and fragment shaders
-    gl.uniform1f(colorThetaLoc, colorTheta);
-    gl.uniformMatrix4fv(modelViewMatrixLoc, false, flatten(modelViewMatrix));
-    gl.uniformMatrix4fv(projectionMatrixLoc, false, flatten(projectionMatrix));
-    gl.uniformMatrix4fv(normalMatrixLoc, false, flatten(normalMatrix));
-    gl.uniform3fv(lightPositionLoc, lightPosition);
+    gl.uniform1f(programInfo.uniformLocations.colorTheta, colorTheta);
+    gl.uniformMatrix4fv(programInfo.uniformLocations.modelViewMatrix, false, flatten(modelViewMatrix));
+    gl.uniformMatrix4fv(programInfo.uniformLocations.projectionMatrix, false, flatten(projectionMatrix));
+    gl.uniformMatrix4fv(programInfo.uniformLocations.normalMatrix, false, flatten(normalMatrix));
+    gl.uniform3fv(programInfo.uniformLocations.lightPosition, lightPosition);
 
     // Tell WebGL we want to affect texture unit 0
     gl.activeTexture(gl.TEXTURE0);
@@ -345,11 +262,84 @@ function render() {
     gl.bindTexture(gl.TEXTURE_2D, texture);
 
     // Tell the shader we bound the texture to texture unit 0
-    gl.uniform1i(uSamplerLoc, 0);
+    gl.uniform1i(programInfo.uniformLocations.sampler, 0);
 
     // Draw the cube
     gl.drawArrays(gl.TRIANGLES, 0, numElements);
+}
 
-    // Start next animation frame
-    requestAnimFrame(render);
+// Links position data in buffer to the vertex shader attribute
+function setPositionAttribute(gl, buffers, programInfo) {
+    const numComponents = 4;
+    const type = gl.FLOAT;
+    const normalize = false;
+    const stride = 0;
+    const offset = 0;
+    gl.bindBuffer(gl.ARRAY_BUFFER, buffers.position);
+    gl.vertexAttribPointer(
+        programInfo.attribLocations.vertexPosition,
+        numComponents,
+        type,
+        normalize,
+        stride,
+        offset
+    );
+    gl.enableVertexAttribArray(programInfo.attribLocations.vertexPosition);
+}
+
+// Links color data in buffer to the vertex shader attribute
+function setColorAttribute(gl, buffers, programInfo) {
+    const numComponents = 4;
+    const type = gl.FLOAT;
+    const normalize = false;
+    const stride = 0;
+    const offset = 0;
+    gl.bindBuffer(gl.ARRAY_BUFFER, buffers.color);
+    gl.vertexAttribPointer(
+        programInfo.attribLocations.vertexColor,
+        numComponents,
+        type,
+        normalize,
+        stride,
+        offset
+    );
+    gl.enableVertexAttribArray(programInfo.attribLocations.vertexColor);
+}
+
+// Links texture data in buffer to the vertex shader attribute
+function setTextureAttribute(gl, buffers, programInfo) {
+    const numComponents = 2;
+    const type = gl.FLOAT;
+    const normalize = false;
+    const stride = 0;
+    const offset = 0;
+    gl.bindBuffer(gl.ARRAY_BUFFER, buffers.texture);
+    gl.vertexAttribPointer(
+        programInfo.attribLocations.vertexTexture,
+        numComponents,
+        type,
+        normalize,
+        stride,
+        offset
+    );
+    gl.enableVertexAttribArray(programInfo.attribLocations.vertexTexture);
+}
+
+// Links normal data in buffer to the vertex shader attribute
+function setNormalAttribute(gl, buffers, programInfo) {
+    const numComponents = 3;
+    const type = gl.FLOAT;
+    const normalize = false;
+    const stride = 0;
+    const offset = 0;
+    gl.bindBuffer(gl.ARRAY_BUFFER, buffers.normal);
+    gl.vertexAttribPointer(
+        programInfo.attribLocations.vertexNormal,
+        numComponents,
+        type,
+        normalize,
+        stride,
+        offset
+    );
+    gl.enableVertexAttribArray(programInfo.attribLocations.vertexNormal);
 }
