@@ -66,10 +66,10 @@
                 vec3 norm = normalize(transformedNormal);
                 vec3 light = normalize(lightPosition - fPosition);
 
-                // Compute Lambertian reflection brightness for diffuse reflection
-                float lambertian = max(dot(norm, light), 0.0);
+                // Compute diffuse reflection brightness for diffuse reflection
+                float diffuse = max(dot(norm, light), 0.0);
                 float specular = 0.0;
-                if (lambertian > 0.0) {
+                if (diffuse > 0.0) {
                     // Compute the vector for reflected light
                     vec3 reflected = -light - 2.0 * dot(norm, -light) * norm;
                     // Compute the vector between the vertex and the viewer
@@ -81,7 +81,7 @@
                 }
 
                 // Apply new color as a combination of ambient, diffuse, and specular
-                gl_FragColor = vec4(ambientColor + lambertian * diffuseColor + specular * specularColor, 1.0);
+                gl_FragColor = vec4(ambientColor + diffuse * diffuseColor + specular * specularColor, 1.0);
             }
         </script>
         <script type="text/javascript" src="../Common/webgl-utils.js"></script>
