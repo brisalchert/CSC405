@@ -12,6 +12,9 @@ var colors = [];
 var normals = [];
 var texCoords = [];
 
+var colorTheta = 0.0;
+var colorThetaLoc;
+
 var near = -1.0;
 var far = 1.0;
 var radius = 0.5;
@@ -153,6 +156,7 @@ window.onload = function init() {
     gl.enableVertexAttribArray(vNormal);
 
     // Get locations of uniforms in the vertex and fragment shaders
+    colorThetaLoc = gl.getUniformLocation(program, "colorTheta");
     modelViewMatrixLoc = gl.getUniformLocation(program, "modelViewMatrix");
     projectionMatrixLoc = gl.getUniformLocation(program, "projectionMatrix");
     normalMatrixLoc = gl.getUniformLocation(program, "normalMatrix");
@@ -322,8 +326,11 @@ function render() {
     // Set light direction
     lightPosition = normalize(vec3(1.0, 1.0, 1.0))
 
+    // Increment color cycle
+    colorTheta = (colorTheta + (2 * Math.PI / 1000)) % (2 * Math.PI);
+
     // Pass new values to uniforms in the vertex and fragment shaders
-    // gl.uniform1f(colorThetaLoc, colorTheta);
+    gl.uniform1f(colorThetaLoc, colorTheta);
     gl.uniformMatrix4fv(modelViewMatrixLoc, false, flatten(modelViewMatrix));
     gl.uniformMatrix4fv(projectionMatrixLoc, false, flatten(projectionMatrix));
     gl.uniformMatrix4fv(normalMatrixLoc, false, flatten(normalMatrix));

@@ -38,14 +38,26 @@
 
             uniform vec3 lightPosition;
             uniform sampler2D uSampler;
+            uniform float colorTheta;
 
             void main() {
+                float pi = (22.0 / 7.0);
+                float offset = (2.0 * pi / 3.0);
+
+                vec3 textureColor = vec3(texture2D(uSampler, fTextureCoord));
+
+                // Compute new color value from old color value, applying a rotation
+                // about the color wheel to achieve a cyclical rainbow
+                float r = sin((textureColor.x * pi) + colorTheta) / 2.0 + 0.5;
+                float g = sin((textureColor.y * pi) + colorTheta + offset) / 2.0 + 0.5;
+                float b = sin((textureColor.z * pi) + colorTheta + (2.0 * offset)) / 2.0 + 0.5;
+
                 // Set diffuse, ambient, and specular colors, as well as shininess.
                 // Ambient light permeates the scene, applying to every surface. Diffuse
                 // reflections are identical across a polygon, since incoming light is
                 // scattered. Specular reflections are mirror-like reflections where the
                 // light reflects perfectly off of a point.
-                vec3 diffuseColor = vec3(texture2D(uSampler, fTextureCoord)); // Diffuse color uses color from texture
+                vec3 diffuseColor = vec3(r, g, b); // Diffuse color uses color from texture
                 vec3 ambientColor = diffuseColor / 7.0;
                 vec3 specularColor = vec3(1.0, 1.0, 1.0);
                 const float shininess = 80.0;
