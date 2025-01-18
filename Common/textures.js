@@ -72,6 +72,8 @@ function isPowerOf2(value) {
     return (value & (value - 1)) === 0;
 }
 
+// Ask for Cross Origin Resource Sharing permission for
+// non-CORS images
 function requestCORSIfNotSameOrigin(img, url) {
     if ((new URL(url, window.location.href)).origin !== window.location.origin) {
         img.crossOrigin = "";
