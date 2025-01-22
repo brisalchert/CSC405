@@ -184,16 +184,15 @@ function drag(deltaX, deltaY) {
 }
 
 function resizeCanvasToDisplaySize(canvas) {
-    // Lookup the size the browser is displaying the canvas in CSS pixels.
+    // Lookup display size using CSS attributes
     const displayWidth  = canvas.clientWidth;
     const displayHeight = canvas.clientHeight;
 
-    // Check if the canvas is not the same size.
+    // Check if canvas size is different
     const needResize = canvas.width  !== displayWidth ||
                        canvas.height !== displayHeight;
 
     if (needResize) {
-      // Make the canvas the same size
       canvas.width  = displayWidth;
       canvas.height = displayHeight;
     }
@@ -202,8 +201,8 @@ function resizeCanvasToDisplaySize(canvas) {
   }
 
 function drawScene(gl, programInfo) {
+    // Resize the canvas and reset the viewport
     resizeCanvasToDisplaySize(gl.canvas);
-
     gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
 
     gl.clearColor(0.0, 0.0, 0.0, 1.0);
