@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Interactive Viewer</title>
+        <link rel="stylesheet" href="style.css">
+        <script id="vertex-shader" type="x-shader/x-vertex">
+            attribute vec4 vPosition;
+            attribute vec3 vNormal;
+            attribute vec2 vTextureCoord;
+            varying vec3 transformedNormal;
+            varying vec3 fPosition;
+            varying vec2 fTextureCoord;
+
+            uniform mat4 uModelViewMatrix;
+            uniform mat4 uProjectionMatrix;
+            uniform mat4 uNormalMatrix;
+
+            void main() {
+                // Apply transformation/projection. The model view matrix positions
+                // objects to create the illusion of a change in the position and
+                // orientation of the camera. The projection matrix applies either
+                // orthogonal or perspective projection to the object and converts
+                // the viewing volume (originally in camera coordinates) to the
+                // corresponding clip coordinates.
+
+                vec4 transformedPosition = uModelViewMatrix * vPosition;
+                gl_Position = uProjectionMatrix * transformedPosition;
+
+                // Pass texture and normal information to the fragment shader
+                fPosition = vec3(transformedPosition) / transformedPosition.w;
+                transformedNormal = vec3(uNormalMatrix * vec4(vNormal, 1.0));
+                fTextureCoord = vTextureCoord;
+            }
+        </script>
+        <script id="fragment-shader" type="x-shader/x-fragment">
+            precision mediump float;
+            varying vec3 transformedNormal;
+            varying vec3 fPosition;
+            varying vec2 fTextureCoord;
+
+            uniform vec3 uLightPosition;
+            uniform sampler2D uSampler;
+            uniform float uColorTheta;
+
+            void main() {
+                float pi = (22.0 / 7.0);
+                float offset = (2.0 * pi / 3.0);
+
+                vec3 textureColor = vec3(texture2D(uSampler, fTextureCoord));
+
+                // Compute new color value from old color value, applying a rotation
+                // about the color wheel to achieve a cyclical rainbow
+                float r = sin((textureColor.x * pi) + uColorTheta) / 2.0 + 0.5;
+                float g = sin((textureColor.y * pi) + uColorTheta + offset) / 2.0 + 0.5;
+                float b = sin((textureColor.z * pi) + uColorTheta + (2.0 * offset)) / 2.0 + 0.5;
+
+                // Set diffuse, ambient, and specular colors, as well as shininess.
+                // Ambient light permeates the scene, applying to every surface. Diffuse
+                // reflections are identical across a polygon, since incoming light is
+                // scattered. Specular reflections are mirror-like reflections where the
+                // light reflects perfectly off of a point.
+
+                vec3 diffuseColor = vec3(r, g, b); // Diffuse color uses color from texture
+                vec3 ambientColor = diffuseColor / 7.0;
+                vec3 specularColor = vec3(1.0, 1.0, 1.0);
+                const float shininess = 80.0;
+
+                // Calculate normalized normal vector and light direction vector
+                vec3 norm = normalize(transformedNormal);
+                vec3 light = normalize(uLightPosition - fPosition);
+
+                // Compute diffuse reflection brightness for diffuse reflection
+                float diffuse = max(dot(norm, light), 0.0);
+                float specular = 0.0;
+                if (diffuse > 0.0) {
+                    // Compute the vector for reflected light
+                    vec3 reflected = -light - 2.0 * dot(norm, -light) * norm;
+                    // Compute the vector between the vertex and the viewer
+                    vec3 viewer = normalize(-fPosition);
+                    // Compute specular reflection brightness
+                    float specAngle = max(dot(reflected, viewer), 0.0);
+                    // Dim specular reflection brightness by a shininess value (higher is less shiny)
+                    specular = pow(specAngle, shininess);
+                }
+
+                // Apply new color as a combination of ambient, diffuse, and specular
+                gl_FragColor = vec4(ambientColor + diffuse * diffuseColor + specular * specularColor, 1.0);
+            }
+        </script>
+        <script type="text/javascript" src="../Common/webgl-utils.js"></script>
+        <script type="text/javascript" src="../Common/initShaders.js"></script>
+        <script type="text/javascript" src="../Common/MV.js"></script>
+        <script type="text/javascript" src="../Common/MV2.js"></script>
+        <script type="text/javascript" src="../Common/textures.js"></script>
+        <script type="text/javascript" src="initBufferSphere.js"></script>
+        <script type="text/javascript" src="gasketMod6.js"></script>
+    </head>
+    <body>
+        <canvas id="gl-canvas">
+            Sorry; your web browser does not support HTML5's canvas element.
+        </canvas>
+        <br/>
+        <p>Click and drag on the image to position the camera!</p>
+        <p>Use the scroll wheel to zoom in/out (more easily visible in perspective mode).</p>
+        <div>
+            <button id="perspectiveButton">Toggle perspective/orthogonal view</button>
+        </div>
+        <div>
+            Depth of clipping volume: .05<input id="depthSlider" type="range"
+             min=".05" max="2" step="0.01" value="2" style="width: 400px" />
+             2
+        </div>
+        <div>
+            Radius (camera distance): 0.05<input id="radiusSlider" type="range"
+             min="0.05" max="2" step="0.01" value="0.5" style="width: 400px" />
+             2
+        </div>
+        <div>
+            Theta (horizontal angle): 0<input id="thetaSlider" type="range"
+             min="0" max="360" step="2.5" value="0" style="width: 400px" />
+             360
+        </div>
+        <div>
+            Phi (vertical angle): -90<input id="phiSlider" type="range"
+             min="-90" max="90" step="2.5" value="0" style="width: 400px" />
+             90
+        </div>
+        <div>
+            Aspect ratio (value:1): 1<input id="aspectSlider" type="range"
+             min="1" max="5" step="0.05" value="1" style="width: 400px" />
+             5
+        </div>
+    </body>
+</html>
