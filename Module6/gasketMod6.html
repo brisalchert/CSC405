@@ -88,7 +88,7 @@
                 }
 
                 // Apply new color as a combination of ambient, diffuse, and specular
-                gl_FragColor = vec4(ambientColor + diffuse * diffuseColor + specular * specularColor * 0.0, 1.0);
+                gl_FragColor = vec4(ambientColor + diffuse * diffuseColor + specular * specularColor, 1.0);
             }
         </script>
         <script type="text/javascript" src="../Common/webgl-utils.js"></script>
