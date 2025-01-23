@@ -9,23 +9,21 @@ const numElements = 36;
 
 var colorTheta = 0.0;
 
-var near = -1.0;
-var far = 1.0;
-var radius = 0.5;
-var theta  = 0.0;
-var phi    = 0.0;
+var radius = 3.0;
+var near = 1.0;
+var far = 6.0;
+var theta = 0.0;
+var phi = 0.0;
 
-var left = -0.5;
-var right = 0.5;
-var ytop = 0.5;
-var bottom = -0.5;
+var left = -6.0;
+var right = 6.0;
+var ytop = 3.0;
+var bottom = -3.0;
 
 var modelViewMatrix, projectionMatrix, normalMatrix, lightPosition;
 var eye;
 const at = vec3(0.0, 0.0, 0.0);
 var up = vec3(0.0, 1.0, 0.0);
-
-var invertedCamera = false;
 
 var startDragX = null;
 var startDragY = null;
@@ -45,11 +43,6 @@ window.onload = function init() {
     gl.viewport(0, 0, canvas.width, canvas.height);
     gl.clearColor(0.0, 0.0, 0.0, 1.0);
     gl.clear(gl.COLOR_BUFFER_BIT);
-
-    // Scale xy-plane clipping boundary to canvas size
-    const aspectRatio = canvas.width / canvas.height;
-    left *= aspectRatio;
-    right *= aspectRatio;
 
     // Load vertex and fragment shaders
     const shaderProgram = initShaders(gl, "vertex-shader", "fragment-shader");
@@ -84,40 +77,25 @@ window.onload = function init() {
 
     // Set event listeners for sliders
     document.getElementById("depthSlider").addEventListener("input", function(event) {
-        // Set near and far planes based on type of projection
-        if (perspectiveView) {
-            far = event.target.value / 2.0 + 1.05;
-            near = 1.05 - event.target.value / 2.0;
-        } else {
-            far = event.target.value / 2.0;
-            near = -event.target.value / 2.0;
-        }
+        far = 1.0 + parseFloat(event.target.value);
     });
     document.getElementById("radiusSlider").addEventListener("input", function(event) {
-       radius = event.target.value;
+       radius = parseFloat(event.target.value);
     });
     document.getElementById("thetaSlider").addEventListener("input", function(event) {
-        theta = event.target.value* Math.PI/180.0;
+        theta = parseFloat(event.target.value) * Math.PI/180.0;
     });
     document.getElementById("phiSlider").addEventListener("input", function(event) {
-        phi = event.target.value* Math.PI/180.0;
+        phi = parseFloat(event.target.value) * Math.PI/180.0;
     });
     document.getElementById("aspectSlider").addEventListener("input", function(event) {
-        right = event.target.value/2;
-        left = -event.target.value/2;
+        right = 6.0 * parseFloat(event.target.value);
+        left = -6.0 * parseFloat(event.target.value);
     });
 
     // Set event listener for perspective button
     document.getElementById("perspectiveButton").onclick = function() {
-        if (perspectiveView) {
-            far -= 1.05;
-            near -= 1.05;
-            perspectiveView = false;
-        } else {
-            far += 1.05;
-            near += 1.05;
-            perspectiveView = true;
-        }
+        perspectiveView = !perspectiveView;
     };
 
     // Set mouse interactivity event handlers
@@ -138,13 +116,13 @@ window.onload = function init() {
 function mouseWheelHandler(e) {
     var delta = Math.max(-1, Math.min(1, (e.wheelDelta || -e.detail)));
 
-    radius -= 0.03 * delta;
+    radius -= 0.06 * delta;
 
     // Prevent radius from going out of range
-    if (radius < 0.05) {
-        radius = 0.05;
-    } else if (radius > 2.0) {
-        radius = 2.0;
+    if (radius < parseFloat(document.getElementById("radiusSlider").min)) {
+        radius = parseFloat(document.getElementById("radiusSlider").min);
+    } else if (radius > parseFloat(document.getElementById("radiusSlider").max)) {
+        radius = parseFloat(document.getElementById("radiusSlider").max);
     }
 
     // Prevent scrolling from moving the page
@@ -258,7 +236,8 @@ function drawScene(gl, programInfo) {
 
         projectionMatrix = perspective(90.0, aspect, near, far);
     } else {
-        projectionMatrix = ortho(left, right, bottom, ytop, near, far);
+        // Ensure correct near/far by negating them (camera faces negative-z)
+        projectionMatrix = ortho(left, right, bottom, ytop, -near, -far);
     }
 
     // Calculate normal matrix, which transforms the vertices' normal vectors
