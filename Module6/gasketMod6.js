@@ -243,7 +243,7 @@ function drawScene(gl, programInfo, buffer) {
     normalMatrix = inverse(modelViewMatrix);
     normalMatrix = transpose(normalMatrix);
 
-    lightPosition = normalize(vec3(5.0, 5.0, 5.0))
+    lightPosition = vec4(10.0, 10.0, 0.0, 1.0);
 
     colorTheta = (colorTheta + (2 * Math.PI / 1000)) % (2 * Math.PI);
 
@@ -252,7 +252,7 @@ function drawScene(gl, programInfo, buffer) {
     gl.uniformMatrix4fv(programInfo.uniformLocations.modelViewMatrix, false, flatten(modelViewMatrix));
     gl.uniformMatrix4fv(programInfo.uniformLocations.projectionMatrix, false, flatten(projectionMatrix));
     gl.uniformMatrix4fv(programInfo.uniformLocations.normalMatrix, false, flatten(normalMatrix));
-    gl.uniform3fv(programInfo.uniformLocations.lightPosition, lightPosition);
+    gl.uniform4fv(programInfo.uniformLocations.lightPosition, lightPosition);
 
     // Tell the shader that the texture is bound to texture unit 0
     gl.activeTexture(gl.TEXTURE0);

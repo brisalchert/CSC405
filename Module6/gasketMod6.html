@@ -10,7 +10,9 @@
             varying vec3 transformedNormal;
             varying vec3 fPosition;
             varying vec2 fTextureCoord;
+            varying vec3 fLightPosition;
 
+            uniform vec4 uLightPosition;
             uniform mat4 uModelViewMatrix;
             uniform mat4 uProjectionMatrix;
             uniform mat4 uNormalMatrix;
@@ -28,8 +30,10 @@
 
                 // Pass texture and normal information to the fragment shader
                 fPosition = vec3(transformedPosition) / transformedPosition.w;
-                transformedNormal = vec3(uNormalMatrix * vec4(vNormal, 1.0));
+                transformedNormal = vec3(uNormalMatrix * vec4(vNormal, 0.0));
                 fTextureCoord = vTextureCoord;
+
+                fLightPosition = vec3(uModelViewMatrix * uLightPosition);
             }
         </script>
         <script id="fragment-shader" type="x-shader/x-fragment">
@@ -37,8 +41,8 @@
             varying vec3 transformedNormal;
             varying vec3 fPosition;
             varying vec2 fTextureCoord;
+            varying vec3 fLightPosition;
 
-            uniform vec3 uLightPosition;
             uniform sampler2D uSampler;
             uniform float uColorTheta;
 
@@ -67,24 +71,24 @@
 
                 // Calculate normalized normal vector and light direction vector
                 vec3 norm = normalize(transformedNormal);
-                vec3 light = normalize(uLightPosition - fPosition);
+                vec3 light = normalize(vec3(fLightPosition - fPosition));
 
                 // Compute diffuse reflection brightness for diffuse reflection
                 float diffuse = max(dot(norm, light), 0.0);
                 float specular = 0.0;
                 if (diffuse > 0.0) {
-                    // Compute the vector for reflected light
-                    vec3 reflected = -light - 2.0 * dot(norm, -light) * norm;
                     // Compute the vector between the vertex and the viewer
                     vec3 viewer = normalize(-fPosition);
+                    // Compute the halfway vector between viewer and light
+                    vec3 halfway = normalize(light + viewer);
                     // Compute specular reflection brightness
-                    float specAngle = max(dot(reflected, viewer), 0.0);
+                    float specAngle = max(dot(norm, halfway), 0.0);
                     // Dim specular reflection brightness by a shininess value (higher is less shiny)
                     specular = pow(specAngle, shininess);
                 }
 
                 // Apply new color as a combination of ambient, diffuse, and specular
-                gl_FragColor = vec4(ambientColor + diffuse * diffuseColor + specular * specularColor, 1.0);
+                gl_FragColor = vec4(ambientColor + diffuse * diffuseColor + specular * specularColor * 0.0, 1.0);
             }
         </script>
         <script type="text/javascript" src="../Common/webgl-utils.js"></script>
@@ -99,36 +103,37 @@
         <canvas id="gl-canvas">
             Sorry; your web browser does not support HTML5's canvas element.
         </canvas>
-        <br/>
-        <p>Click and drag on the image to position the camera!</p>
-        <p>Use the scroll wheel to zoom in/out (more easily visible in perspective mode).</p>
-        <div>
-            <button id="perspectiveButton">Toggle perspective/orthogonal view</button>
-        </div>
-        <div>
-            Depth of clipping volume: 1<input id="depthSlider" type="range"
-             min="1" max="10.0" step="0.05" value="5" style="width: 400px" />
-             10
-        </div>
-        <div>
-            Radius (camera distance): 3<input id="radiusSlider" type="range"
-             min="3.0" max="10.0" step="0.05" value="3.0" style="width: 400px" />
-             10
-        </div>
-        <div>
-            Theta (horizontal angle): 0<input id="thetaSlider" type="range"
-             min="0" max="360" step="2.5" value="0" style="width: 400px" />
-             360
-        </div>
-        <div>
-            Phi (vertical angle): -90<input id="phiSlider" type="range"
-             min="-90" max="90" step="2.5" value="0" style="width: 400px" />
-             90
-        </div>
-        <div>
-            Aspect ratio (value:1): 1<input id="aspectSlider" type="range"
-             min="1" max="5" step="0.05" value="1" style="width: 400px" />
-             5
+        <div id="controls">
+            <p>Click and drag on the image to position the camera!</p>
+            <p>Use the scroll wheel to zoom in/out (more easily visible in perspective mode).</p>
+            <div>
+                <button id="perspectiveButton">Toggle perspective/orthogonal view</button>
+            </div>
+            <div>
+                Depth of clipping volume: 1<input id="depthSlider" type="range"
+                min="1" max="10.0" step="0.05" value="5" />
+                10
+            </div>
+            <div>
+                Radius (camera distance): 3<input id="radiusSlider" type="range"
+                min="3.0" max="10.0" step="0.05" value="3.0" />
+                10
+            </div>
+            <div>
+                Theta (horizontal angle): 0<input id="thetaSlider" type="range"
+                min="0" max="360" step="2.5" value="0" />
+                360
+            </div>
+            <div>
+                Phi (vertical angle): -90<input id="phiSlider" type="range"
+                min="-90" max="90" step="2.5" value="0" />
+                90
+            </div>
+            <div>
+                Aspect ratio (value:1): 1<input id="aspectSlider" type="range"
+                min="1" max="5" step="0.05" value="1" />
+                5
+            </div>
         </div>
     </body>
 </html>
