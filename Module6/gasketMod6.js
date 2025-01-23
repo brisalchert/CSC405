@@ -5,8 +5,6 @@ var canvas;
 /** @type {WebGLRenderingContext} */
 var gl;
 
-const numElements = 36;
-
 var colorTheta = 0.0;
 
 var radius = 3.0;
@@ -66,7 +64,7 @@ window.onload = function init() {
     };
 
     // Initialize interleaved attribute buffer
-    const buffer = initBuffer(gl, numElements);
+    const buffer = initBuffer(gl);
 
     texture = loadTexture(gl, "https://plus.unsplash.com/premium_photo-1681400232080-d344759e6609?q=80&w=2574&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D");
 
@@ -105,7 +103,7 @@ window.onload = function init() {
     canvas.addEventListener("wheel", mouseWheelHandler);
 
     function render() {
-        drawScene(gl, programInfo)
+        drawScene(gl, programInfo, buffer);
 
         requestAnimFrame(render);
     }
@@ -178,7 +176,7 @@ function resizeCanvasToDisplaySize(canvas) {
     return needResize;
   }
 
-function drawScene(gl, programInfo) {
+function drawScene(gl, programInfo, buffer) {
     // Resize the canvas and reset the viewport
     resizeCanvasToDisplaySize(gl.canvas);
     gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
@@ -245,7 +243,7 @@ function drawScene(gl, programInfo) {
     normalMatrix = inverse(modelViewMatrix);
     normalMatrix = transpose(normalMatrix);
 
-    lightPosition = normalize(vec3(1.0, 1.0, 1.0))
+    lightPosition = normalize(vec3(5.0, 5.0, 5.0))
 
     colorTheta = (colorTheta + (2 * Math.PI / 1000)) % (2 * Math.PI);
 
@@ -261,7 +259,9 @@ function drawScene(gl, programInfo) {
     gl.bindTexture(gl.TEXTURE_2D, texture);
     gl.uniform1i(programInfo.uniformLocations.sampler, 0);
 
-    gl.drawArrays(gl.TRIANGLES, 0, numElements);
+    for (var i = 0; i < buffer.vertexCount; i += 3) {
+        gl.drawArrays(gl.TRIANGLES, i, 3);
+    }
 }
 
 // Links position data in buffer to the vertex shader attribute

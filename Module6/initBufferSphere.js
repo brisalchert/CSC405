@@ -1,22 +1,55 @@
-const indices = [
-    [1, 0, 3, 2],
-    [2, 3, 7, 6],
-    [3, 0, 4, 7],
-    [6, 5, 1, 2],
-    [4, 5, 6, 7],
-    [5, 4, 0, 1]
-];
+// Define starting vertices for tetrahedron
+var va = vec4(0.0, 0.0, -1.0, 1);
+var vb = vec4(0.0, 0.942809, 0.333333, 1);
+var vc = vec4(0.816497, -0.471405, 0.333333, 1);
+var vd = vec4(-0.816497, -0.471405, 0.333333, 1);
 
-const vertices = [
-    vec4(-0.5, -0.5,  0.5, 1.0),
-    vec4(-0.5,  0.5,  0.5, 1.0),
-    vec4( 0.5,  0.5,  0.5, 1.0),
-    vec4( 0.5, -0.5,  0.5, 1.0),
-    vec4(-0.5, -0.5, -0.5, 1.0),
-    vec4(-0.5,  0.5, -0.5, 1.0),
-    vec4( 0.5,  0.5, -0.5, 1.0),
-    vec4( 0.5, -0.5, -0.5, 1.0)
-];
+var positions = [];
+var normals = [];
+var count = 0;
+
+function triangle(a, b, c) {
+    positions.push(a);
+    positions.push(b);
+    positions.push(c);
+
+    // normals are vectors
+    normals.push([a[0], a[1], a[2]]);
+    normals.push([b[0], b[1], b[2]]);
+    normals.push([c[0], c[1], c[2]]);
+
+    count += 3;
+}
+
+function tetrahedron(a, b, c, d, n) {
+    divideTriangle(a, b, c, n);
+    divideTriangle(d, c, b, n);
+    divideTriangle(a, d, b, n);
+    divideTriangle(a, c, d, n);
+}
+
+function divideTriangle(a, b, c, count) {
+    if (count > 0) {
+
+        // Get midpoints of sides
+        var ab = mix(a, b, 0.5);
+        var ac = mix(a, c, 0.5);
+        var bc = mix(b, c, 0.5);
+
+        ab = normalize(ab, true);
+        ac = normalize(ac, true);
+        bc = normalize(bc, true);
+
+        // Subdivide recursively
+        divideTriangle(a, ab, ac, count - 1);
+        divideTriangle(ab, b, bc, count - 1);
+        divideTriangle(bc, c, ac, count - 1);
+        divideTriangle(ab, bc, ac, count - 1);
+    }
+    else {
+        triangle(a, b, c);
+    }
+}
 
 const textureCorners = [
     [0.0, 0.0],
@@ -36,30 +69,30 @@ const vertexColors = [
     [0.0, 1.0, 1.0, 1.0]   // cyan
 ];
 
-function initBuffer(gl, numElements) {
-    const buffer = initVertexBuffer(gl, numElements);
+function initBuffer(gl) {
+    const buffer = initVertexBuffer(gl);
 
     return {
         vertexBuffer: buffer,
         stride: 36, // Bytes between consecutive interleaved attributes
         positionOffset: 0, // Offset for each attribute
         textureOffset: 16,
-        normalOffset: 24
+        normalOffset: 24,
+        vertexCount: count
     };
 }
 
-function initVertexBuffer(gl, numElements) {
+function initVertexBuffer(gl) {
     const vertexBuffer = gl.createBuffer();
     gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer);
 
-    var positions = initPositions();
+    tetrahedron(va, vb, vc, vd, 5);
     var textureCoords = initTextureCoords();
-    var normals = initNormals();
 
     var attributes = [];
 
     // Interleave vertex attributes within the same buffer
-    for (var i = 0; i < numElements; i++) {
+    for (var i = 0; i < count; i++) {
         attributes.push(positions[i]);
         attributes.push(textureCoords[i]);
         attributes.push(normals[i]);
@@ -88,8 +121,8 @@ function initPositions() {
 function initTextureCoords() {
     var textureCoords = [];
 
-    for (var i = 0; i < indices.length; i++) {
-        const textureIndices = [0, 1, 2, 0, 2, 3];
+    for (var i = 0; i < count / 3; i++) {
+        const textureIndices = [0, 1, 2];
 
         for (var j = 0; j < textureIndices.length; j++) {
             textureCoords.push(textureCorners[textureIndices[j]]);
