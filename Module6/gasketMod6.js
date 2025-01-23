@@ -114,7 +114,7 @@ window.onload = function init() {
 function mouseWheelHandler(e) {
     var delta = Math.max(-1, Math.min(1, (e.wheelDelta || -e.detail)));
 
-    radius -= 0.06 * delta;
+    radius -= 0.15 * delta;
 
     // Prevent radius from going out of range
     if (radius < parseFloat(document.getElementById("radiusSlider").min)) {
