@@ -3,11 +3,16 @@
     height: 100%;
 }
 
+p {
+    color: white;
+    font-size: 0.9rem;
+}
+
 body {
     position: relative;
     margin: auto;
     height: 100%;
-    background-color: black;
+    background-color: white;
     text-align: center;
     display: flex;
     align-items: center;
@@ -16,6 +21,7 @@ body {
 canvas {
     width: 100%;
     height: auto;
+    max-height: 100%;
     margin-left: auto;
     margin-right: auto;
 }
@@ -53,14 +59,12 @@ button {
 }
 
 .controlsElement {
-    margin: auto;
-    margin-top: 5px;
-    margin-bottom: 5px;
+    margin: 0;
 }
 
 .controlsElement p {
-    margin-top: 5px;
-    margin-bottom: 5px;
+    margin-top: 0;
+    margin-bottom: 0;
 }
 
 .sliderContainer p {
@@ -69,8 +73,12 @@ button {
 }
 
 .sliderContainer input {
-    height: 20px;
     margin: auto;
     margin-left: 0;
     margin-right: 0;
+}
+
+#keyboardControls {
+    text-align: left;
+    margin-left: 50px;
 }
