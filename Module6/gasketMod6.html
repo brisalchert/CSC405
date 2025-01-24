@@ -18,12 +18,22 @@
             uniform mat4 uProjectionMatrix;
             uniform mat4 uNormalMatrix;
             uniform int uOrthogonal;
+            uniform vec3 uCameraTranslation;
 
             uniform vec3 uTranslation;
             uniform vec3 uRotation;
             uniform vec3 uScale;
 
             void main() {
+                // Compute camera translation matrix (use negative values, since
+                // objects should move in the opposite direction of the camera)
+                mat4 cameraTranslationMatrix = mat4(
+                    1.0, 0.0, 0.0, 0.0,
+                    0.0, 1.0, 0.0, 0.0,
+                    0.0, 0.0, 1.0, 0.0,
+                    -uCameraTranslation.x, -uCameraTranslation.y, -uCameraTranslation.z, 1.0
+                );
+
                 // Compute the sines and cosines of theta for each of
                 // the three axes in one computation.
                 vec3 angles = radians(uRotation);
@@ -73,6 +83,9 @@
                 // Apply z-rotation before x-rotation to achieve proper axis angle for objects
                 mat4 rotationMatrix = xRotationMatrix * yRotationMatrix * zRotationMatrix;
                 vec4 transformedPosition = translationMatrix * rotationMatrix * scalingMatrix * vPosition;
+
+                // Apply camera translation
+                transformedPosition = cameraTranslationMatrix * transformedPosition;
 
                 // Apply transformation/projection. The model view matrix positions
                 // objects to create the illusion of a change in the position and

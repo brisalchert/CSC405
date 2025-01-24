@@ -11,22 +11,36 @@ var moonTheta = 0.0;
 const earthMoonRatio = 27.323;
 var deltaEarthTheta = 0.25;
 var deltaMoonTheta = deltaEarthTheta / earthMoonRatio;
-const near = 0.5;
+var near = 0.5;
 const far = 60.0;
 var cameraTheta = 0.0;
 var cameraPhi = 0.0;
 
-var left = -6.0;
-var right = 6.0;
-var ytop = 3.0;
-var bottom = -3.0;
+
+var left = -60.0;
+var right = 60.0;
+var ytop = 30.0;
+var bottom = -30.0;
 
 var modelViewMatrix, projectionMatrix, normalMatrix, lightPosition;
 var translation, rotation, scale;
 var ambientProduct, diffuseProduct, specularProduct, shininess;
+
 var eye;
 const at = vec3(0.0, 0.0, 0.0);
 var up = vec3(0.0, 1.0, 0.0);
+
+var cameraTranslation = [0.0, 0.0, 0.0];
+var cameraMovements = [false, false, false, false];
+const cameraDelta = 0.025;
+
+const keys = new Map();
+keys.set("w", 0);
+keys.set("a", 1);
+keys.set("s", 2);
+keys.set("d", 3);
+keys.set(" ", 4);
+keys.set("shift", 5);
 
 var objTranslationCoords = [
     [0.0, 0.0, 0.0],
@@ -52,6 +66,7 @@ var startDragY = null;
 
 var perspectiveView = true;
 var orthogonal = 0;
+const orthogonalRatio = 10.0;
 
 var textures;
 
@@ -91,7 +106,8 @@ window.onload = function init() {
             ambientProduct: gl.getUniformLocation(shaderProgram, "uAmbientProduct"),
             diffuseProduct: gl.getUniformLocation(shaderProgram, "uDiffuseProduct"),
             specularProduct: gl.getUniformLocation(shaderProgram, "uSpecularProduct"),
-            shininess: gl.getUniformLocation(shaderProgram, "uShininess")
+            shininess: gl.getUniformLocation(shaderProgram, "uShininess"),
+            cameraTranslation: gl.getUniformLocation(shaderProgram, "uCameraTranslation")
         }
     };
 
@@ -125,14 +141,15 @@ window.onload = function init() {
         cameraPhi = parseFloat(event.target.value) * Math.PI/180.0;
     });
     document.getElementById("aspectSlider").addEventListener("input", function(event) {
-        right = 6.0 * parseFloat(event.target.value);
-        left = -6.0 * parseFloat(event.target.value);
+        right = 60.0 * parseFloat(event.target.value);
+        left = -60.0 * parseFloat(event.target.value);
     });
 
     // Set event listener for perspective button
     document.getElementById("perspectiveButton").onclick = function() {
         perspectiveView = !perspectiveView;
         orthogonal = (orthogonal + 1) % 2;
+        near = 0.5 - (orthogonal * 5.0);
     };
 
     // Set mouse interactivity event handlers
@@ -140,6 +157,10 @@ window.onload = function init() {
     canvas.onmousemove = mouseMoveHandler;
     document.onmouseup = mouseUpHandler; // Ensure letting go outside canvas stops drag
     canvas.addEventListener("wheel", mouseWheelHandler);
+
+    // Set keyboard interactivity event handlers
+    document.onkeyup = keyUpHandler;
+    document.onkeydown = keyDownHandler;
 
     function render() {
         drawScene(gl, programInfo, buffers);
@@ -198,6 +219,16 @@ function drag(deltaX, deltaY) {
     cameraTheta -= deltaTheta;
 }
 
+function keyDownHandler(e) {
+    // Prevent repetitive keydown triggers for each key
+    if (!keys.has(e.key.toLowerCase()) || cameraMovements[keys.get(e.key.toLowerCase())]) return;
+    cameraMovements[keys.get(e.key.toLowerCase())] = true;
+}
+
+function keyUpHandler(e) {
+    cameraMovements[keys.get(e.key.toLowerCase())] = false;
+}
+
 function resizeCanvasToDisplaySize(canvas) {
     // Lookup display size using CSS attributes
     const displayWidth = canvas.clientWidth;
@@ -230,9 +261,41 @@ function updateMoonOrbit() {
     objRotationThetas[1][1] += deltaMoonTheta;
 }
 
+function updateCameraTranslation() {
+    if (cameraMovements[0]) {
+        cameraTranslation[0] -= cameraDelta * Math.sin(cameraTheta);
+        cameraTranslation[1] -= cameraDelta * Math.sin(cameraPhi);
+        cameraTranslation[2] -= cameraDelta * Math.cos(cameraTheta);
+    }
+    if (cameraMovements[1]) {
+        cameraTranslation[0] -= cameraDelta * Math.cos(cameraTheta);
+        cameraTranslation[2] += cameraDelta * Math.sin(cameraTheta);
+    }
+    if (cameraMovements[2]) {
+        cameraTranslation[0] += cameraDelta * Math.sin(cameraTheta);
+        cameraTranslation[1] += cameraDelta * Math.sin(cameraPhi);
+        cameraTranslation[2] += cameraDelta * Math.cos(cameraTheta);
+    }
+    if (cameraMovements[3]) {
+        cameraTranslation[0] += cameraDelta * Math.cos(cameraTheta);
+        cameraTranslation[2] -= cameraDelta * Math.sin(cameraTheta);
+    }
+    if (cameraMovements[4]) {
+        cameraTranslation[0] -= cameraDelta * Math.sin(cameraTheta) * Math.sin(cameraPhi);
+        cameraTranslation[1] += cameraDelta * Math.cos(cameraPhi);
+        cameraTranslation[2] -= cameraDelta * Math.cos(cameraTheta) * Math.sin(cameraPhi);
+    }
+    if (cameraMovements[5]) {
+        cameraTranslation[0] += cameraDelta * Math.sin(cameraTheta) * Math.sin(cameraPhi);
+        cameraTranslation[1] -= cameraDelta * Math.cos(cameraPhi);
+        cameraTranslation[2] += cameraDelta * Math.cos(cameraTheta) * Math.sin(cameraPhi);
+    }
+}
+
 function drawScene(gl, programInfo, buffers) {
     updateEarthRotation();
     updateMoonOrbit();
+    updateCameraTranslation();
 
     // Resize the canvas and reset the viewport
     resizeCanvasToDisplaySize(gl.canvas);
@@ -293,7 +356,14 @@ function drawScene(gl, programInfo, buffers) {
         orthogonal = 0;
     } else {
         // Ensure correct near/far by negating them (camera faces negative-z)
-        projectionMatrix = ortho(left, right, bottom, ytop, -near, -far);
+        projectionMatrix = ortho(
+            left / orthogonalRatio,
+            right / orthogonalRatio,
+            bottom / orthogonalRatio,
+            ytop / orthogonalRatio,
+            -near,
+            -far
+        );
         orthogonal = 1;
     }
 
@@ -310,6 +380,7 @@ function drawScene(gl, programInfo, buffers) {
     gl.uniformMatrix4fv(programInfo.uniformLocations.normalMatrix, false, flatten(normalMatrix));
     gl.uniform4fv(programInfo.uniformLocations.lightPosition, lightPosition);
     gl.uniform1i(programInfo.uniformLocations.orthogonal, orthogonal);
+    gl.uniform3fv(programInfo.uniformLocations.cameraTranslation, cameraTranslation);
 
     // Tell the shader that the texture is bound to texture unit 0
     gl.activeTexture(gl.TEXTURE0);
