@@ -1,12 +1,16 @@
-// Define starting vertices for tetrahedron
-var va = vec4(0.0, 0.0, -1.0, 1);
-var vb = vec4(0.0, 0.942809, 0.333333, 1);
-var vc = vec4(0.816497, -0.471405, 0.333333, 1);
-var vd = vec4(-0.816497, -0.471405, 0.333333, 1);
+// Define starting vertices for octahedron
+var va = vec4(0.0, 1.0, 0.0, 1.0);
+var vb = vec4(0.0, 0.0, 1.0, 1.0);
+var vc = vec4(1.0, 0.0, 0.0, 1.0);
+var vd = vec4(0.0, 0.0, -1.0, 1.0);
+var ve = vec4(-1.0, 0.0, 0.0, 1.0);
+var vf = vec4(0.0, -1.0, 0.0, 1.0);
 
 var positions = [];
 var normals = [];
-var count = 0;
+var countVertices = 0;
+
+const subdivide = 5;
 
 function triangle(a, b, c) {
     positions.push(a);
@@ -18,14 +22,21 @@ function triangle(a, b, c) {
     normals.push([b[0], b[1], b[2]]);
     normals.push([c[0], c[1], c[2]]);
 
-    count += 3;
+    countVertices += 3;
 }
 
-function tetrahedron(a, b, c, d, n) {
+function tetrahedron(a, b, c, d, e, f, n) {
+    // Top triangles
     divideTriangle(a, b, c, n);
-    divideTriangle(d, c, b, n);
-    divideTriangle(a, d, b, n);
     divideTriangle(a, c, d, n);
+    divideTriangle(a, d, e, n);
+    divideTriangle(a, e, b, n);
+
+    // // Bottom triangles
+    divideTriangle(f, c, b, n);
+    divideTriangle(f, d, c, n);
+    divideTriangle(f, e, d, n);
+    divideTriangle(f, b, e, n);
 }
 
 function divideTriangle(a, b, c, count) {
@@ -51,13 +62,6 @@ function divideTriangle(a, b, c, count) {
     }
 }
 
-const textureCorners = [
-    [0.0, 0.0],
-    [0.0, 1.0],
-    [1.0, 1.0],
-    [1.0, 0.0]
-];
-
 const vertexColors = [
     [0.0, 0.0, 0.0, 1.0],  // black
     [1.0, 0.0, 0.0, 1.0],  // red
@@ -78,7 +82,7 @@ function initBuffer(gl) {
         positionOffset: 0, // Offset for each attribute
         textureOffset: 16,
         normalOffset: 24,
-        vertexCount: count
+        vertexCount: countVertices
     };
 }
 
@@ -86,13 +90,13 @@ function initVertexBuffer(gl) {
     const vertexBuffer = gl.createBuffer();
     gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer);
 
-    tetrahedron(va, vb, vc, vd, 5);
+    tetrahedron(va, vb, vc, vd, ve, vf, subdivide);
     var textureCoords = initTextureCoords();
 
     var attributes = [];
 
     // Interleave vertex attributes within the same buffer
-    for (var i = 0; i < count; i++) {
+    for (var i = 0; i < countVertices; i++) {
         attributes.push(positions[i]);
         attributes.push(textureCoords[i]);
         attributes.push(normals[i]);
@@ -121,11 +125,35 @@ function initPositions() {
 function initTextureCoords() {
     var textureCoords = [];
 
-    for (var i = 0; i < count / 3; i++) {
-        const textureIndices = [0, 1, 2];
+    // Map sphere UV coordinates to rectangular coordinates
+    // within the texture
+    for (var i = 0; i < countVertices; i += 3) {
+        var u = [
+            0.5 + Math.atan2(positions[i][0], positions[i][2]) / (2.0 * Math.PI),
+            0.5 + Math.atan2(positions[i + 1][0], positions[i + 1][2]) / (2.0 * Math.PI),
+            0.5 + Math.atan2(positions[i + 2][0], positions[i + 2][2]) / (2.0 * Math.PI)
+        ];
+        var v = [
+            0.5 - Math.asin(positions[i][1]) / Math.PI,
+            0.5 - Math.asin(positions[i + 1][1]) / Math.PI,
+            0.5 - Math.asin(positions[i + 2][1]) / Math.PI
+        ];
 
-        for (var j = 0; j < textureIndices.length; j++) {
-            textureCoords.push(textureCorners[textureIndices[j]]);
+        const maxU = Math.max(u[0], Math.max(u[1], u[2]));
+        const minU = Math.min(u[0], Math.min(u[1], u[2]));
+        const uAvg = (u[0] + u[1] + u[2]) / 3;
+
+
+        if ((maxU - minU > 0.85)) {
+            for (var j = 0; j < u.length; j++) {
+                if (u[j] === maxU) {
+                    u[j] = 0.0;
+                }
+            }
+        }
+
+        for (var j = 0; j < u.length; j++) {
+            textureCoords.push([u[j], v[j]]);
         }
     }
 

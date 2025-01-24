@@ -37,6 +37,7 @@ function loadTexture(gl, url) {
     );
 
     const image = new Image();
+    image.crossOrigin = "anonymous";
     image.onload = () => {
       gl.bindTexture(gl.TEXTURE_2D, texture);
       gl.texImage2D(
@@ -62,7 +63,6 @@ function loadTexture(gl, url) {
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
       }
     };
-    requestCORSIfNotSameOrigin(image, url);
     image.src = url;
 
     return texture;
@@ -70,12 +70,4 @@ function loadTexture(gl, url) {
 
 function isPowerOf2(value) {
     return (value & (value - 1)) === 0;
-}
-
-// Ask for Cross Origin Resource Sharing permission for
-// non-CORS images
-function requestCORSIfNotSameOrigin(img, url) {
-    if ((new URL(url, window.location.href)).origin !== window.location.origin) {
-        img.crossOrigin = "";
-    }
 }

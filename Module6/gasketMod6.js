@@ -66,7 +66,7 @@ window.onload = function init() {
     // Initialize interleaved attribute buffer
     const buffer = initBuffer(gl);
 
-    texture = loadTexture(gl, "https://plus.unsplash.com/premium_photo-1681400232080-d344759e6609?q=80&w=2574&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D");
+    texture = loadTexture(gl, "https://media2.dev.to/dynamic/image/width=800%2Cheight=%2Cfit=scale-down%2Cgravity=auto%2Cformat=auto/https%3A%2F%2Fdev-to-uploads.s3.amazonaws.com%2Fuploads%2Farticles%2Fpkyl2esnlgqtq4gakgdg.png");
 
     // Link buffer data to vertex shader attributes
     setPositionAttribute(gl, buffer, programInfo);
