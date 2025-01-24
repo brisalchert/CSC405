@@ -62,11 +62,13 @@ function divideTriangle(a, b, c, count) {
     }
 }
 
-function initBuffer(gl) {
-    const buffer = initVertexBuffer(gl);
+function initBuffers(gl) {
+    const earthBuffer = initVertexBuffer(gl);
+    const moonBuffer = initVertexBuffer(gl);
+    const buffers = [earthBuffer, moonBuffer];
 
     return {
-        vertexBuffer: buffer,
+        vertexBuffers: buffers,
         stride: 36, // Bytes between consecutive interleaved attributes
         positionOffset: 0, // Offset for each attribute
         textureOffset: 16,

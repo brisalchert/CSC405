@@ -5,8 +5,6 @@ var canvas;
 /** @type {WebGLRenderingContext} */
 var gl;
 
-var colorTheta = 0.0;
-
 var radius = 3.0;
 var near = 1.0;
 var far = 6.0;
@@ -18,17 +16,34 @@ var right = 6.0;
 var ytop = 3.0;
 var bottom = -3.0;
 
-var modelViewMatrix, projectionMatrix, normalMatrix, lightPosition;
+var modelViewMatrix, projectionMatrix, normalMatrix, lightPosition, orthogonal, translation, rotation, scale;
 var eye;
 const at = vec3(0.0, 0.0, 0.0);
 var up = vec3(0.0, 1.0, 0.0);
+
+var translationCoords = [
+    [0.0, 0.0, 0.0],
+    [4.0, 0.0, 0.0]
+];
+
+var rotationThetas = [
+    [0.0, 0.0, 0.0],
+    [0.0, 0.0, 0.0]
+];
+
+const scalingValues = [
+    [1.0, 1.0, 1.0],
+    [0.25, 0.25, 0.25]
+];
+
+var time
 
 var startDragX = null;
 var startDragY = null;
 
 var perspectiveView = false;
 
-var texture;
+var textures;
 
 window.onload = function init() {
     canvas = document.getElementById("gl-canvas");
@@ -58,20 +73,28 @@ window.onload = function init() {
             projectionMatrix: gl.getUniformLocation(shaderProgram, "uProjectionMatrix"),
             normalMatrix: gl.getUniformLocation(shaderProgram, "uNormalMatrix"),
             lightPosition: gl.getUniformLocation(shaderProgram, "uLightPosition"),
+            orthogonal: gl.getUniformLocation(shaderProgram, "uOrthogonal"),
             sampler: gl.getUniformLocation(shaderProgram, "uSampler"),
-            colorTheta: gl.getUniformLocation(shaderProgram, "uColorTheta")
+            translation: gl.getUniformLocation(shaderProgram, "uTranslation"),
+            rotation: gl.getUniformLocation(shaderProgram, "uRotation"),
+            scale: gl.getUniformLocation(shaderProgram, "uScale")
         }
     };
 
     // Initialize interleaved attribute buffer
-    const buffer = initBuffer(gl);
+    const buffers = initBuffers(gl);
 
-    texture = loadTexture(gl, "https://media2.dev.to/dynamic/image/width=800%2Cheight=%2Cfit=scale-down%2Cgravity=auto%2Cformat=auto/https%3A%2F%2Fdev-to-uploads.s3.amazonaws.com%2Fuploads%2Farticles%2Fpkyl2esnlgqtq4gakgdg.png");
+    textures = [
+        loadTexture(gl, "https://media2.dev.to/dynamic/image/width=800%2Cheight=%2Cfit=scale-down%2Cgravity=auto%2Cformat=auto/https%3A%2F%2Fdev-to-uploads.s3.amazonaws.com%2Fuploads%2Farticles%2Fpkyl2esnlgqtq4gakgdg.png"),
+        loadTexture(gl, "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d1/Solarsystemscope_texture_8k_moon.jpg/2560px-Solarsystemscope_texture_8k_moon.jpg")
+    ];
 
-    // Link buffer data to vertex shader attributes
-    setPositionAttribute(gl, buffer, programInfo);
-    setTextureAttribute(gl, buffer, programInfo);
-    setNormalAttribute(gl, buffer, programInfo);
+    // Link each object buffer's data to vertex shader attributes
+    for (var i = 0; i < buffers.vertexBuffers.length; i++) {
+        setPositionAttribute(gl, buffers, i, programInfo);
+        setTextureAttribute(gl, buffers, i, programInfo);
+        setNormalAttribute(gl, buffers, i, programInfo);
+    }
 
     // Set event listeners for sliders
     document.getElementById("depthSlider").addEventListener("input", function(event) {
@@ -103,7 +126,7 @@ window.onload = function init() {
     canvas.addEventListener("wheel", mouseWheelHandler);
 
     function render() {
-        drawScene(gl, programInfo, buffer);
+        drawScene(gl, programInfo, buffers);
 
         requestAnimFrame(render);
     }
@@ -176,7 +199,7 @@ function resizeCanvasToDisplaySize(canvas) {
     return needResize;
   }
 
-function drawScene(gl, programInfo, buffer) {
+function drawScene(gl, programInfo, buffers) {
     // Resize the canvas and reset the viewport
     resizeCanvasToDisplaySize(gl.canvas);
     gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
@@ -233,9 +256,11 @@ function drawScene(gl, programInfo, buffer) {
         var aspect = (right - left) / (ytop - bottom);
 
         projectionMatrix = perspective(90.0, aspect, near, far);
+        orthogonal = 0;
     } else {
         // Ensure correct near/far by negating them (camera faces negative-z)
         projectionMatrix = ortho(left, right, bottom, ytop, -near, -far);
+        orthogonal = 1;
     }
 
     // Calculate normal matrix, which transforms the vertices' normal vectors
@@ -245,33 +270,45 @@ function drawScene(gl, programInfo, buffer) {
 
     lightPosition = vec4(10.0, 10.0, 0.0, 1.0);
 
-    colorTheta = (colorTheta + (2 * Math.PI / 1000)) % (2 * Math.PI);
-
-    // Pass new values to uniforms in the vertex and fragment shaders
-    gl.uniform1f(programInfo.uniformLocations.colorTheta, colorTheta);
+    // Pass new values to universal uniforms in the vertex and fragment shaders
     gl.uniformMatrix4fv(programInfo.uniformLocations.modelViewMatrix, false, flatten(modelViewMatrix));
     gl.uniformMatrix4fv(programInfo.uniformLocations.projectionMatrix, false, flatten(projectionMatrix));
     gl.uniformMatrix4fv(programInfo.uniformLocations.normalMatrix, false, flatten(normalMatrix));
     gl.uniform4fv(programInfo.uniformLocations.lightPosition, lightPosition);
+    gl.uniform1i(programInfo.uniformLocations.orthogonal, orthogonal);
 
     // Tell the shader that the texture is bound to texture unit 0
     gl.activeTexture(gl.TEXTURE0);
-    gl.bindTexture(gl.TEXTURE_2D, texture);
-    gl.uniform1i(programInfo.uniformLocations.sampler, 0);
 
-    for (var i = 0; i < buffer.vertexCount; i += 3) {
-        gl.drawArrays(gl.TRIANGLES, i, 3);
+
+    for (var objIndex = 0; objIndex < buffers.vertexBuffers.length; objIndex++) {
+        // Set uniforms for current object
+        translation = translationCoords[objIndex];
+        rotation = rotationThetas[objIndex];
+        scale = scalingValues[objIndex];
+
+        gl.uniform3fv(programInfo.uniformLocations.translation, translation);
+        gl.uniform3fv(programInfo.uniformLocations.rotation, rotation);
+        gl.uniform3fv(programInfo.uniformLocations.scale, scale);
+
+        // Set texture for current object
+        gl.bindTexture(gl.TEXTURE_2D, textures[objIndex]);
+        gl.uniform1i(programInfo.uniformLocations.sampler, 0);
+
+        for (var i = 0; i < buffers.vertexCount; i += 3) {
+            gl.drawArrays(gl.TRIANGLES, i, 3);
+        }
     }
 }
 
 // Links position data in buffer to the vertex shader attribute
-function setPositionAttribute(gl, buffer, programInfo) {
+function setPositionAttribute(gl, buffers, bufferIndex, programInfo) {
     const numComponents = 4;
     const type = gl.FLOAT;
     const normalize = false;
-    const stride = buffer.stride;
-    const offset = buffer.positionOffset;
-    gl.bindBuffer(gl.ARRAY_BUFFER, buffer.vertexBuffer);
+    const stride = buffers.stride;
+    const offset = buffers.positionOffset;
+    gl.bindBuffer(gl.ARRAY_BUFFER, buffers.vertexBuffers[bufferIndex]);
     gl.vertexAttribPointer(
         programInfo.attribLocations.vertexPosition,
         numComponents,
@@ -284,13 +321,13 @@ function setPositionAttribute(gl, buffer, programInfo) {
 }
 
 // Links color data in buffer to the vertex shader attribute
-function setColorAttribute(gl, buffer, programInfo) {
+function setColorAttribute(gl, buffers, bufferIndex, programInfo) {
     const numComponents = 4;
     const type = gl.FLOAT;
     const normalize = false;
-    const stride = buffer.stride;
-    const offset = buffer.colorOffset;
-    gl.bindBuffer(gl.ARRAY_BUFFER, buffer.vertexBuffer);
+    const stride = buffers.stride;
+    const offset = buffers.colorOffset;
+    gl.bindBuffer(gl.ARRAY_BUFFER, buffers.vertexBuffers[bufferIndex]);
     gl.vertexAttribPointer(
         programInfo.attribLocations.vertexColor,
         numComponents,
@@ -303,13 +340,13 @@ function setColorAttribute(gl, buffer, programInfo) {
 }
 
 // Links texture data in buffer to the vertex shader attribute
-function setTextureAttribute(gl, buffer, programInfo) {
+function setTextureAttribute(gl, buffers, bufferIndex, programInfo) {
     const numComponents = 2;
     const type = gl.FLOAT;
     const normalize = false;
-    const stride = buffer.stride;
-    const offset = buffer.textureOffset;
-    gl.bindBuffer(gl.ARRAY_BUFFER, buffer.vertexBuffer);
+    const stride = buffers.stride;
+    const offset = buffers.textureOffset;
+    gl.bindBuffer(gl.ARRAY_BUFFER, buffers.vertexBuffers[bufferIndex]);
     gl.vertexAttribPointer(
         programInfo.attribLocations.vertexTexture,
         numComponents,
@@ -322,13 +359,13 @@ function setTextureAttribute(gl, buffer, programInfo) {
 }
 
 // Links normal data in buffer to the vertex shader attribute
-function setNormalAttribute(gl, buffer, programInfo) {
+function setNormalAttribute(gl, buffers, bufferIndex, programInfo) {
     const numComponents = 3;
     const type = gl.FLOAT;
     const normalize = false;
-    const stride = buffer.stride;
-    const offset = buffer.normalOffset;
-    gl.bindBuffer(gl.ARRAY_BUFFER, buffer.vertexBuffer);
+    const stride = buffers.stride;
+    const offset = buffers.normalOffset;
+    gl.bindBuffer(gl.ARRAY_BUFFER, buffers.vertexBuffers[bufferIndex]);
     gl.vertexAttribPointer(
         programInfo.attribLocations.vertexNormal,
         numComponents,

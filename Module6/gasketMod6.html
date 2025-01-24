@@ -7,6 +7,7 @@
             attribute vec4 vPosition;
             attribute vec3 vNormal;
             attribute vec2 vTextureCoord;
+
             varying vec3 transformedNormal;
             varying vec3 fPosition;
             varying vec2 fTextureCoord;
@@ -16,8 +17,63 @@
             uniform mat4 uModelViewMatrix;
             uniform mat4 uProjectionMatrix;
             uniform mat4 uNormalMatrix;
+            uniform int uOrthogonal;
+
+            uniform vec3 uTranslation;
+            uniform vec3 uRotation;
+            uniform vec3 uScale;
 
             void main() {
+                // Compute the sines and cosines of theta for each of
+                // the three axes in one computation.
+                vec3 angles = radians(uRotation);
+                vec3 c = cos(angles);
+                vec3 s = sin(angles);
+
+                // Create rotation matrix for the x-axis
+                mat4 xRotationMatrix = mat4(
+                    1.0,  0.0,  0.0, 0.0,
+                    0.0,  c.x,  s.x, 0.0,
+                    0.0, -s.x,  c.x, 0.0,
+                    0.0,  0.0,  0.0, 1.0
+                );
+
+                // Create rotation matrix for the y-axis
+                mat4 yRotationMatrix = mat4(
+                    c.y, 0.0, -s.y, 0.0,
+                    0.0, 1.0,  0.0, 0.0,
+                    s.y, 0.0,  c.y, 0.0,
+                    0.0, 0.0,  0.0, 1.0
+                );
+
+                // Create rotation matrix for the z-axis
+                mat4 zRotationMatrix = mat4(
+                    c.z, s.z, 0.0, 0.0,
+                    -s.z, c.z, 0.0, 0.0,
+                    0.0, 0.0, 1.0, 0.0,
+                    0.0, 0.0, 0.0, 1.0
+                );
+
+                // Create scaling matrix
+                mat4 scalingMatrix = mat4(
+                    uScale.x, 0.0, 0.0, 0.0,
+                    0.0, uScale.y, 0.0, 0.0,
+                    0.0, 0.0, uScale.z, 0.0,
+                    0.0, 0.0, 0.0, 1.0
+                );
+
+                // Create translation matrix
+                mat4 translationMatrix = mat4(
+                    1.0, 0.0, 0.0, 0.0,
+                    0.0, 1.0, 0.0, 0.0,
+                    0.0, 0.0, 1.0, 0.0,
+                    uTranslation.x, uTranslation.y, uTranslation.z, 1.0
+                );
+
+                vec4 transformedPosition = scalingMatrix * vPosition;
+                transformedPosition = zRotationMatrix * yRotationMatrix * xRotationMatrix * transformedPosition;
+                transformedPosition = translationMatrix * transformedPosition;
+
                 // Apply transformation/projection. The model view matrix positions
                 // objects to create the illusion of a change in the position and
                 // orientation of the camera. The projection matrix applies either
@@ -25,8 +81,13 @@
                 // the viewing volume (originally in camera coordinates) to the
                 // corresponding clip coordinates.
 
-                vec4 transformedPosition = uModelViewMatrix * vPosition;
+                transformedPosition = uModelViewMatrix * transformedPosition;
                 gl_Position = uProjectionMatrix * transformedPosition;
+
+                // Negate z-values for orthogonal projection for correct depth ordering
+                if (uOrthogonal == 1) {
+                    gl_Position.z = -gl_Position.z;
+                }
 
                 // Pass texture and normal information to the fragment shader
                 fPosition = vec3(transformedPosition) / transformedPosition.w;
@@ -38,6 +99,7 @@
         </script>
         <script id="fragment-shader" type="x-shader/x-fragment">
             precision mediump float;
+
             varying vec3 transformedNormal;
             varying vec3 fPosition;
             varying vec2 fTextureCoord;
