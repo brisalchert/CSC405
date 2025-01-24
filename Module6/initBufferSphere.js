@@ -62,17 +62,6 @@ function divideTriangle(a, b, c, count) {
     }
 }
 
-const vertexColors = [
-    [0.0, 0.0, 0.0, 1.0],  // black
-    [1.0, 0.0, 0.0, 1.0],  // red
-    [1.0, 1.0, 0.0, 1.0],  // yellow
-    [0.0, 1.0, 0.0, 1.0],  // green
-    [0.0, 0.0, 1.0, 1.0],  // blue
-    [1.0, 0.0, 1.0, 1.0],  // magenta
-    [1.0, 1.0, 1.0, 1.0],  // white
-    [0.0, 1.0, 1.0, 1.0]   // cyan
-];
-
 function initBuffer(gl) {
     const buffer = initVertexBuffer(gl);
 
@@ -107,21 +96,6 @@ function initVertexBuffer(gl) {
     return vertexBuffer;
 }
 
-function initPositions() {
-    var positions = [];
-
-    for (var i = 0; i < indices.length; i++) {
-        const [a, b, c, d] = indices[i];
-        const vertexIndices = [a, b, c, a, c, d];
-
-        for (var j = 0; j < vertexIndices.length; j++) {
-            positions.push(vertices[vertexIndices[j]]);
-        }
-    }
-
-    return positions;
-}
-
 function initTextureCoords() {
     var textureCoords = [];
 
@@ -141,7 +115,6 @@ function initTextureCoords() {
 
         const maxU = Math.max(u[0], Math.max(u[1], u[2]));
         const minU = Math.min(u[0], Math.min(u[1], u[2]));
-        const uAvg = (u[0] + u[1] + u[2]) / 3;
 
 
         if ((maxU - minU > 0.85)) {
@@ -158,38 +131,4 @@ function initTextureCoords() {
     }
 
     return textureCoords;
-}
-
-function initColors() {
-    var colors = [];
-
-    for (var i = 0; i < indices.length; i++) {
-        const [a, b, c, d] = indices[i];
-        const colorIndices = [a, b, c, a, c, d];
-
-        for (var j = 0; j < colorIndices.length; j++) {
-            colors.push(vertexColors[colorIndices[j]]);
-        }
-    }
-
-    return colors;
-}
-
-function initNormals() {
-    var normals = [];
-
-    for (var i = 0; i < indices.length; i++) {
-        const [a, b, c, d] = indices[i];
-        const numNormals = 6;
-
-        const edge1 = subtract(vertices[b], vertices[a]);
-        const edge2 = subtract(vertices[c], vertices[a]);
-        const normal = normalize(cross(edge1, edge2));
-
-        for (var j = 0; j < numNormals; j++) {
-            normals.push(normal);
-        }
-    }
-
-    return normals;
 }
