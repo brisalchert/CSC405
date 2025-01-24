@@ -88,7 +88,7 @@ function initBuffers(gl) {
     const buffers = [earthBuffer, moonBuffer];
 
     return {
-        vertexBuffers: buffers,
+        vertexBuffers: buffers, // Contains a buffer for each object in the scene
         materials: {
             ambient: materialAmbient,
             diffuse: materialDiffuse,
@@ -144,7 +144,9 @@ function initTextureCoords() {
         const maxU = Math.max(u[0], Math.max(u[1], u[2]));
         const minU = Math.min(u[0], Math.min(u[1], u[2]));
 
-
+        // By default, vertices with x = 0 will always use u = 1.0, but
+        // those that are part of triangles with vertices on the left
+        // side of the texture should use u = 0.0.
         if ((maxU - minU > 0.85)) {
             for (var j = 0; j < u.length; j++) {
                 if (u[j] === maxU) {

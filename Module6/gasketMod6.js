@@ -5,35 +5,38 @@ var canvas;
 /** @type {WebGLRenderingContext} */
 var gl;
 
-var cameraRadius = 3.0;
+// Object transformation variables
 var moonRadius = 5.0;
 var moonTheta = 0.0;
 const earthMoonRatio = 27.323;
 var deltaEarthTheta = 0.25;
 var deltaMoonTheta = deltaEarthTheta / earthMoonRatio;
-var near = 0.5;
-const far = 60.0;
-var cameraTheta = 0.0;
-var cameraPhi = 0.0;
 
-
+// Projection parameters
 var left = -60.0;
 var right = 60.0;
 var ytop = 30.0;
 var bottom = -30.0;
+var near = 0.5;
+const far = 60.0;
 
+// Uniforms
 var modelViewMatrix, projectionMatrix, normalMatrix, lightPosition;
 var translation, rotation, scale;
 var ambientProduct, diffuseProduct, specularProduct, shininess;
 
+// Camera variables
 var eye;
 const at = vec3(0.0, 0.0, 0.0);
 var up = vec3(0.0, 1.0, 0.0);
-
+var cameraRadius = 3.0;
+var cameraTheta = 0.0;
+var cameraPhi = 0.0;
 var cameraTranslation = [0.0, 0.0, 0.0];
 var cameraMovements = [false, false, false, false];
 const cameraDelta = 0.025;
 
+// Key mappings
 const keys = new Map();
 keys.set("w", 0);
 keys.set("a", 1);
@@ -42,6 +45,7 @@ keys.set("d", 3);
 keys.set(" ", 4);
 keys.set("shift", 5);
 
+// Object transformation vectors
 var objTranslationCoords = [
     [0.0, 0.0, 0.0],
     [moonRadius, 0.0, 0.0]
@@ -58,20 +62,20 @@ const objScalingValues = [
     [0.25, 0.25, 0.25]
 ];
 
+// Light source properties
 var lightColor = [1.0, 1.0, 1.0];
 var lightDistance = 20.0;
 
-var time;
-
+// Mouse interactivity
 var startDragX = null;
 var startDragY = null;
 
+// Projection toggle variables
 var perspectiveView = true;
 var orthogonal = 0;
 const orthogonalRatio = 10.0;
 
 var textures;
-
 
 window.onload = function init() {
     canvas = document.getElementById("gl-canvas");
@@ -114,7 +118,7 @@ window.onload = function init() {
         }
     };
 
-    // Initialize interleaved attribute buffer
+    // Initialize interleaved attribute buffers for all scene objects
     const buffers = initBuffers(gl);
 
     textures = [
@@ -138,10 +142,10 @@ window.onload = function init() {
        cameraRadius = parseFloat(event.target.value);
     });
     document.getElementById("thetaSlider").addEventListener("input", function(event) {
-        cameraTheta = parseFloat(event.target.value) * Math.PI/180.0;
+        cameraTheta = parseFloat(event.target.value) * Math.PI/180.0; // Convert to radians
     });
     document.getElementById("phiSlider").addEventListener("input", function(event) {
-        cameraPhi = parseFloat(event.target.value) * Math.PI/180.0;
+        cameraPhi = parseFloat(event.target.value) * Math.PI/180.0; // Convert to radians
     });
     document.getElementById("aspectSlider").addEventListener("input", function(event) {
         right = 60.0 * parseFloat(event.target.value);
@@ -280,6 +284,8 @@ function updateMoonOrbit() {
 }
 
 function updateCameraTranslation() {
+    // Update the translation matrix based on the camera's current angle
+    // and the keys that are being held
     if (cameraMovements[0]) {
         cameraTranslation[0] -= cameraDelta * Math.sin(cameraTheta);
         cameraTranslation[1] -= cameraDelta * Math.sin(cameraPhi);
@@ -311,6 +317,7 @@ function updateCameraTranslation() {
 }
 
 function drawScene(gl, programInfo, buffers) {
+    // Update scene object animations
     updateEarthRotation();
     updateMoonOrbit();
     updateCameraTranslation();
@@ -403,7 +410,7 @@ function drawScene(gl, programInfo, buffers) {
     // Tell the shader that the texture is bound to texture unit 0
     gl.activeTexture(gl.TEXTURE0);
 
-
+    // Draw each object in the scene
     for (var objIndex = 0; objIndex < buffers.vertexBuffers.length; objIndex++) {
         // Set uniforms for current object
         translation = objTranslationCoords[objIndex];
