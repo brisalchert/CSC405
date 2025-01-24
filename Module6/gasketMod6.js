@@ -5,35 +5,40 @@ var canvas;
 /** @type {WebGLRenderingContext} */
 var gl;
 
-var radius = 3.0;
+var cameraRadius = 3.0;
+var moonRadius = 5.0;
+var moonTheta = 0.0;
+const earthMoonRatio = 27.323;
+var deltaEarthTheta = 0.25;
+var deltaMoonTheta = deltaEarthTheta / earthMoonRatio;
 const near = 0.5;
 const far = 60.0;
-var theta = 0.0;
-var phi = 0.0;
+var cameraTheta = 0.0;
+var cameraPhi = 0.0;
 
 var left = -6.0;
 var right = 6.0;
 var ytop = 3.0;
 var bottom = -3.0;
 
-var modelViewMatrix, projectionMatrix, normalMatrix, lightPosition, orthogonal;
+var modelViewMatrix, projectionMatrix, normalMatrix, lightPosition;
 var translation, rotation, scale;
 var ambientProduct, diffuseProduct, specularProduct, shininess;
 var eye;
 const at = vec3(0.0, 0.0, 0.0);
 var up = vec3(0.0, 1.0, 0.0);
 
-var translationCoords = [
+var objTranslationCoords = [
     [0.0, 0.0, 0.0],
-    [4.0, 0.0, 0.0]
+    [moonRadius, 0.0, 0.0]
 ];
 
-var rotationThetas = [
-    [0.0, 0.0, 0.0],
-    [0.0, 0.0, 0.0]
+var objRotationThetas = [
+    [0.0, 90.0, 23.5],
+    [0.0, 0.0, 6.688]
 ];
 
-const scalingValues = [
+const objScalingValues = [
     [1.0, 1.0, 1.0],
     [0.25, 0.25, 0.25]
 ];
@@ -45,7 +50,8 @@ var time;
 var startDragX = null;
 var startDragY = null;
 
-var perspectiveView = false;
+var perspectiveView = true;
+var orthogonal = 0;
 
 var textures;
 
@@ -105,14 +111,18 @@ window.onload = function init() {
     }
 
     // Set event listeners for sliders
+    document.getElementById("timeSlider").addEventListener("input", function(event) {
+        deltaEarthTheta = 0.25 * parseFloat(event.target.value);
+        deltaMoonTheta = deltaEarthTheta / earthMoonRatio;
+    });
     document.getElementById("radiusSlider").addEventListener("input", function(event) {
-       radius = parseFloat(event.target.value);
+       cameraRadius = parseFloat(event.target.value);
     });
     document.getElementById("thetaSlider").addEventListener("input", function(event) {
-        theta = parseFloat(event.target.value) * Math.PI/180.0;
+        cameraTheta = parseFloat(event.target.value) * Math.PI/180.0;
     });
     document.getElementById("phiSlider").addEventListener("input", function(event) {
-        phi = parseFloat(event.target.value) * Math.PI/180.0;
+        cameraPhi = parseFloat(event.target.value) * Math.PI/180.0;
     });
     document.getElementById("aspectSlider").addEventListener("input", function(event) {
         right = 6.0 * parseFloat(event.target.value);
@@ -122,6 +132,7 @@ window.onload = function init() {
     // Set event listener for perspective button
     document.getElementById("perspectiveButton").onclick = function() {
         perspectiveView = !perspectiveView;
+        orthogonal = (orthogonal + 1) % 2;
     };
 
     // Set mouse interactivity event handlers
@@ -142,13 +153,13 @@ window.onload = function init() {
 function mouseWheelHandler(e) {
     var delta = Math.max(-1, Math.min(1, (e.wheelDelta || -e.detail)));
 
-    radius -= 0.15 * delta;
+    cameraRadius -= 0.15 * delta;
 
     // Prevent radius from going out of range
-    if (radius < parseFloat(document.getElementById("radiusSlider").min)) {
-        radius = parseFloat(document.getElementById("radiusSlider").min);
-    } else if (radius > parseFloat(document.getElementById("radiusSlider").max)) {
-        radius = parseFloat(document.getElementById("radiusSlider").max);
+    if (cameraRadius < parseFloat(document.getElementById("radiusSlider").min)) {
+        cameraRadius = parseFloat(document.getElementById("radiusSlider").min);
+    } else if (cameraRadius > parseFloat(document.getElementById("radiusSlider").max)) {
+        cameraRadius = parseFloat(document.getElementById("radiusSlider").max);
     }
 
     // Prevent scrolling from moving the page
@@ -182,14 +193,14 @@ function drag(deltaX, deltaY) {
     var deltaTheta = radPerPixel * deltaX;
     var deltaPhi = radPerPixel * deltaY;
 
-    phi += deltaPhi;
+    cameraPhi += deltaPhi;
 
-    theta -= deltaTheta;
+    cameraTheta -= deltaTheta;
 }
 
 function resizeCanvasToDisplaySize(canvas) {
     // Lookup display size using CSS attributes
-    const displayWidth  = canvas.clientWidth;
+    const displayWidth = canvas.clientWidth;
     const displayHeight = canvas.clientHeight;
 
     // Check if canvas size is different
@@ -202,9 +213,27 @@ function resizeCanvasToDisplaySize(canvas) {
     }
 
     return needResize;
-  }
+}
+
+function updateEarthRotation() {
+    objRotationThetas[0][1] += deltaEarthTheta;
+}
+
+function updateMoonOrbit() {
+    moonTheta += deltaMoonTheta;
+
+    // Calculate new orbit position
+    objTranslationCoords[1][0] = moonRadius * Math.cos(moonTheta * (Math.PI / 180.0));
+    objTranslationCoords[1][2] = moonRadius * -Math.sin(moonTheta * (Math.PI / 180.0));
+
+    // Adjust rotation for tidal lock
+    objRotationThetas[1][1] += deltaMoonTheta;
+}
 
 function drawScene(gl, programInfo, buffers) {
+    updateEarthRotation();
+    updateMoonOrbit();
+
     // Resize the canvas and reset the viewport
     resizeCanvasToDisplaySize(gl.canvas);
     gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
@@ -217,29 +246,29 @@ function drawScene(gl, programInfo, buffers) {
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
     // Ensure angles are within range for sliders
-    while (theta < 0) {
-        theta += 2.0 * Math.PI;
+    while (cameraTheta < 0) {
+        cameraTheta += 2.0 * Math.PI;
     }
 
-    while (theta > 2.0 * Math.PI) {
-        theta -= 2.0 * Math.PI;
+    while (cameraTheta > 2.0 * Math.PI) {
+        cameraTheta -= 2.0 * Math.PI;
     }
 
-    phi = Math.min(Math.max(phi, (-Math.PI / 2.0)), (Math.PI / 2.0));
+    cameraPhi = Math.min(Math.max(cameraPhi, (-Math.PI / 2.0)), (Math.PI / 2.0));
 
     // Ensure slider values match current camera orientation
-    document.getElementById("thetaSlider").value = (theta * 180.0 / Math.PI);
-    document.getElementById("phiSlider").value = (phi * 180.0 / Math.PI);
-    document.getElementById("radiusSlider").value = radius;
+    document.getElementById("thetaSlider").value = (cameraTheta * 180.0 / Math.PI);
+    document.getElementById("phiSlider").value = (cameraPhi * 180.0 / Math.PI);
+    document.getElementById("radiusSlider").value = cameraRadius;
 
     // Calculate eye location, using phi measured from the positive z-axis
     // in the plane x = 0 and theta measured from the positive x-axis in the
     // plane y = 0.
 
     eye = vec3(
-        radius * Math.sin(theta) * Math.cos(phi),
-        radius * Math.sin(phi),
-        radius * Math.cos(theta) * Math.cos(phi)
+        cameraRadius * Math.sin(cameraTheta) * Math.cos(cameraPhi),
+        cameraRadius * Math.sin(cameraPhi),
+        cameraRadius * Math.cos(cameraTheta) * Math.cos(cameraPhi)
     );
 
     // Calculate new model-view matrix. The lookAt function positions the camera
@@ -273,7 +302,7 @@ function drawScene(gl, programInfo, buffers) {
     normalMatrix = inverse(modelViewMatrix);
     normalMatrix = transpose(normalMatrix);
 
-    lightPosition = vec4(10.0, 10.0, 0.0, 1.0);
+    lightPosition = vec4(0.0, 0.0, 20.0, 1.0);
 
     // Pass new values to universal uniforms in the vertex and fragment shaders
     gl.uniformMatrix4fv(programInfo.uniformLocations.modelViewMatrix, false, flatten(modelViewMatrix));
@@ -288,9 +317,9 @@ function drawScene(gl, programInfo, buffers) {
 
     for (var objIndex = 0; objIndex < buffers.vertexBuffers.length; objIndex++) {
         // Set uniforms for current object
-        translation = translationCoords[objIndex];
-        rotation = rotationThetas[objIndex];
-        scale = scalingValues[objIndex];
+        translation = objTranslationCoords[objIndex];
+        rotation = objRotationThetas[objIndex];
+        scale = objScalingValues[objIndex];
 
         ambientProduct = mult(buffers.materials.ambient[objIndex], lightColor);
         diffuseProduct = mult(buffers.materials.diffuse[objIndex], lightColor);

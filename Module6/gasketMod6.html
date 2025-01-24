@@ -70,9 +70,9 @@
                     uTranslation.x, uTranslation.y, uTranslation.z, 1.0
                 );
 
-                vec4 transformedPosition = scalingMatrix * vPosition;
-                transformedPosition = zRotationMatrix * yRotationMatrix * xRotationMatrix * transformedPosition;
-                transformedPosition = translationMatrix * transformedPosition;
+                // Apply z-rotation before x-rotation to achieve proper axis angle for objects
+                mat4 rotationMatrix = xRotationMatrix * yRotationMatrix * zRotationMatrix;
+                vec4 transformedPosition = translationMatrix * rotationMatrix * scalingMatrix * vPosition;
 
                 // Apply transformation/projection. The model view matrix positions
                 // objects to create the illusion of a change in the position and
@@ -89,11 +89,13 @@
                     gl_Position.z = -gl_Position.z;
                 }
 
-                // Pass texture and normal information to the fragment shader
+                // Pass texture and normal information to the fragment shader,
+                // making sure to apply the rotationMatrix to the normals
                 fPosition = vec3(transformedPosition) / transformedPosition.w;
-                transformedNormal = vec3(uNormalMatrix * vec4(vNormal, 0.0));
+                transformedNormal = vec3(uNormalMatrix * rotationMatrix * vec4(vNormal, 0.0));
                 fTextureCoord = vTextureCoord;
 
+                // Ensure light source remains fixed relative to objects in the scene
                 fLightPosition = vec3(uModelViewMatrix * uLightPosition);
             }
         </script>
@@ -171,7 +173,15 @@
             <div class="controlsElement">
             </div>
             <div class="controlsElement">
-                <p>Radius (camera distance)</p>
+                <p>Time Speed</p>
+                <div class="sliderContainer">
+                    <p>0.25</p>
+                    <input id="timeSlider" type="range" min="0.25" max="20.0" step="0.05" value="1.0" />
+                    <p>20</p>
+                </div>
+            </div>
+            <div class="controlsElement">
+                <p>Camera Radius</p>
                 <div class="sliderContainer">
                     <p>2</p>
                     <input id="radiusSlider" type="range" min="2.0" max="10.0" step="0.05" value="3.0" />
@@ -179,7 +189,7 @@
                 </div>
             </div>
             <div class="controlsElement">
-                <p>Theta (horizontal angle)</p>
+                <p>Camera Horizontal Angle</p>
                 <div class="sliderContainer">
                     <p>0</p>
                     <input id="thetaSlider" type="range" min="0" max="360" step="2.5" value="0" />
@@ -187,7 +197,7 @@
                 </div>
             </div>
             <div class="controlsElement">
-                <p>Phi (vertical angle)</p>
+                <p>Camera Vertical Angle</p>
                 <div class="sliderContainer">
                     <p>-90</p>
                     <input id="phiSlider" type="range" min="-90" max="90" step="2.5" value="0" />
@@ -195,7 +205,7 @@
                 </div>
             </div>
             <div class="controlsElement">
-                <p>Aspect ratio (input value : 1)</p>
+                <p>Aspect Ratio (input value : 1)</p>
                 <div class="sliderContainer">
                     <p>1</p>
                     <input id="aspectSlider" type="range" min="1" max="5" step="0.05" value="1" />

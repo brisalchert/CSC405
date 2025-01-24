@@ -12,11 +12,11 @@ const materialAmbient = [
 ]
 
 const materialDiffuse = [
-    [0.7, 0.7, 0.7],
-    [0.8, 0.8, 0.8]
+    [0.85, 0.85, 0.85],
+    [0.9, 0.9, 0.9]
 ]
 const materialSpecular = [
-    [0.4, 0.4, 0.4],
+    [0.7, 0.7, 0.7],
     [0.0, 0.0, 0.0]
 ]
 
@@ -29,7 +29,7 @@ var positions = [];
 var normals = [];
 var countVertices = 0;
 
-const subdivide = 5;
+const subdivide = 4;
 
 function triangle(a, b, c) {
     positions.push(a);
