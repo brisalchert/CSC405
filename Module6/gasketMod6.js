@@ -47,8 +47,9 @@ var objTranslationCoords = [
     [moonRadius, 0.0, 0.0]
 ];
 
+const revolutionAngle = 3.0 * Math.PI / 4.0;
 var objRotationThetas = [
-    [0.0, 90.0, 23.5],
+    [-23.5 * Math.sin(revolutionAngle), 0.0, -23.5 * Math.cos(revolutionAngle)],
     [0.0, 0.0, 6.688]
 ];
 
@@ -117,8 +118,8 @@ window.onload = function init() {
     const buffers = initBuffers(gl);
 
     textures = [
-        loadTexture(gl, "https://media2.dev.to/dynamic/image/width=800%2Cheight=%2Cfit=scale-down%2Cgravity=auto%2Cformat=auto/https%3A%2F%2Fdev-to-uploads.s3.amazonaws.com%2Fuploads%2Farticles%2Fpkyl2esnlgqtq4gakgdg.png"),
-        loadTexture(gl, "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d1/Solarsystemscope_texture_8k_moon.jpg/2560px-Solarsystemscope_texture_8k_moon.jpg")
+        loadTexture(gl, "https://miro.medium.com/v2/resize:fit:1400/1*oA3BRueFhJ-R4WccWu5YBg.jpeg"),
+        loadTexture(gl, "https://upload.wikimedia.org/wikipedia/commons/thumb/2/26/Solarsystemscope_texture_2k_moon.jpg/1200px-Solarsystemscope_texture_2k_moon.jpg")
     ];
 
     // Link each object buffer's data to vertex shader attributes

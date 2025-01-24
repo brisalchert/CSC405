@@ -30,7 +30,7 @@ var positions = [];
 var normals = [];
 var countVertices = 0;
 
-const subdivide = 4;
+const subdivide = 5;
 
 function triangle(a, b, c) {
     positions.push(a);

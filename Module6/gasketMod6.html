@@ -80,8 +80,8 @@
                     uTranslation.x, uTranslation.y, uTranslation.z, 1.0
                 );
 
-                // Apply z-rotation before x-rotation to achieve proper axis angle for objects
-                mat4 rotationMatrix = xRotationMatrix * yRotationMatrix * zRotationMatrix;
+                // Apply y-rotation (About planet axis) first
+                mat4 rotationMatrix = xRotationMatrix * zRotationMatrix * yRotationMatrix;
                 vec4 transformedPosition = translationMatrix * rotationMatrix * scalingMatrix * vPosition;
 
                 // Apply camera translation
