@@ -6,8 +6,8 @@ var canvas;
 var gl;
 
 var radius = 3.0;
-var near = 1.0;
-var far = 6.0;
+const near = 0.5;
+const far = 60.0;
 var theta = 0.0;
 var phi = 0.0;
 
@@ -105,9 +105,6 @@ window.onload = function init() {
     }
 
     // Set event listeners for sliders
-    document.getElementById("depthSlider").addEventListener("input", function(event) {
-        far = 1.0 + parseFloat(event.target.value);
-    });
     document.getElementById("radiusSlider").addEventListener("input", function(event) {
        radius = parseFloat(event.target.value);
     });

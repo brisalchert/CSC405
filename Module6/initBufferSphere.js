@@ -16,12 +16,12 @@ const materialDiffuse = [
     [0.8, 0.8, 0.8]
 ]
 const materialSpecular = [
-    [0.6, 0.6, 0.6],
+    [0.4, 0.4, 0.4],
     [0.0, 0.0, 0.0]
 ]
 
 const materialShininess = [
-    4.0,
+    20.0,
     1.0
 ]
 
