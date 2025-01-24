@@ -57,7 +57,8 @@ const objScalingValues = [
     [0.25, 0.25, 0.25]
 ];
 
-const lightColor = [1.0, 1.0, 1.0];
+var lightColor = [1.0, 1.0, 1.0];
+var lightDistance = 20.0;
 
 var time;
 
@@ -69,6 +70,7 @@ var orthogonal = 0;
 const orthogonalRatio = 10.0;
 
 var textures;
+
 
 window.onload = function init() {
     canvas = document.getElementById("gl-canvas");
@@ -143,6 +145,21 @@ window.onload = function init() {
     document.getElementById("aspectSlider").addEventListener("input", function(event) {
         right = 60.0 * parseFloat(event.target.value);
         left = -60.0 * parseFloat(event.target.value);
+    });
+    document.getElementById("lightDistanceSlider").addEventListener("input", function(event) {
+        lightDistance = parseFloat(event.target.value);
+    });
+    document.getElementById("lightBrightnessSlider").addEventListener("input", function(event) {
+        var intensity = parseFloat(event.target.value);
+        lightColor = [intensity, intensity, intensity];
+    });
+    document.getElementById("earthSmoothSlider").addEventListener("input", function(event) {
+        var specular = parseFloat(event.target.value);
+        buffers.materials.specular[0] = [specular, specular, specular];
+    });
+    document.getElementById("moonSmoothSlider").addEventListener("input", function(event) {
+        var specular = parseFloat(event.target.value);
+        buffers.materials.specular[1] = [specular, specular, specular];
     });
 
     // Set event listener for perspective button
@@ -372,7 +389,7 @@ function drawScene(gl, programInfo, buffers) {
     normalMatrix = inverse(modelViewMatrix);
     normalMatrix = transpose(normalMatrix);
 
-    lightPosition = vec4(0.0, 0.0, 20.0, 1.0);
+    lightPosition = vec4(0.0, 0.0, lightDistance, 1.0);
 
     // Pass new values to universal uniforms in the vertex and fragment shaders
     gl.uniformMatrix4fv(programInfo.uniformLocations.modelViewMatrix, false, flatten(modelViewMatrix));

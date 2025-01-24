@@ -184,11 +184,11 @@
                 <p>Spacebar : Upwards</p>
                 <p>Shift : Downwards</p>
             </div>
-            <p>Click and drag on the image to position the camera!</p>
+            <p>Click and drag on the image to rotate the camera!</p>
             <p>Use the scroll wheel to zoom in/out (more easily visible in perspective mode).</p>
             <div class="controlsElement">
                 <div id="perspectiveContainer">
-                    <p>Press the button below to toggle between perspective and orthogonal projections</p>
+                    <p>Press the button below to toggle between perspective and orthogonal projections.</p>
                     <button id="perspectiveButton">Toggle view</button>
                 </div>
             </div>
@@ -230,6 +230,41 @@
                     <p>1</p>
                     <input id="aspectSlider" type="range" min="1" max="5" step="0.05" value="1" />
                     <p>5</p>
+                </div>
+            </div>
+        </div>
+        <div id="lightControls">
+            <p>Lighting Controls</p>
+            <div class="controlsElement">
+                <p>Light Source Distance</p>
+                <div class="sliderContainer">
+                    <p>1.2</p>
+                    <input id="lightDistanceSlider" type="range" min="1.2" max="20.0" step="0.1" value="20.0" />
+                    <p>20</p>
+                </div>
+            </div>
+            <div class="controlsElement">
+                <p>Light Source Brightness</p>
+                <div class="sliderContainer">
+                    <p>0</p>
+                    <input id="lightBrightnessSlider" type="range" min="0.0" max="1.0" step="0.1" value="1.0" />
+                    <p>1</p>
+                </div>
+            </div>
+            <div class="controlsElement">
+                <p>Earth Smoothness</p>
+                <div class="sliderContainer">
+                    <p>Rough</p>
+                    <input id="earthSmoothSlider" type="range" min="0.0" max="1.0" step="0.1" value="0.7" />
+                    <p>Smooth</p>
+                </div>
+            </div>
+            <div class="controlsElement">
+                <p>Moon Smoothness</p>
+                <div class="sliderContainer">
+                    <p>Rough</p>
+                    <input id="moonSmoothSlider" type="range" min="0.0" max="1.0" step="0.1" value="0.0" />
+                    <p>Smooth</p>
                 </div>
             </div>
         </div>

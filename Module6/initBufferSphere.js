@@ -9,21 +9,22 @@ var vf = vec4(0.0, -1.0, 0.0, 1.0);
 const materialAmbient = [
     [0.1, 0.1, 0.1],
     [0.1, 0.1, 0.1]
-]
+];
 
 const materialDiffuse = [
     [0.85, 0.85, 0.85],
     [0.9, 0.9, 0.9]
-]
+];
+
 const materialSpecular = [
     [0.7, 0.7, 0.7],
     [0.0, 0.0, 0.0]
-]
+];
 
 const materialShininess = [
     20.0,
     1.0
-]
+];
 
 var positions = [];
 var normals = [];
