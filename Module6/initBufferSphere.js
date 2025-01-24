@@ -6,6 +6,25 @@ var vd = vec4(0.0, 0.0, -1.0, 1.0);
 var ve = vec4(-1.0, 0.0, 0.0, 1.0);
 var vf = vec4(0.0, -1.0, 0.0, 1.0);
 
+const materialAmbient = [
+    [0.1, 0.1, 0.1],
+    [0.1, 0.1, 0.1]
+]
+
+const materialDiffuse = [
+    [0.7, 0.7, 0.7],
+    [0.8, 0.8, 0.8]
+]
+const materialSpecular = [
+    [0.6, 0.6, 0.6],
+    [0.0, 0.0, 0.0]
+]
+
+const materialShininess = [
+    4.0,
+    1.0
+]
+
 var positions = [];
 var normals = [];
 var countVertices = 0;
@@ -69,6 +88,12 @@ function initBuffers(gl) {
 
     return {
         vertexBuffers: buffers,
+        materials: {
+            ambient: materialAmbient,
+            diffuse: materialDiffuse,
+            specular: materialSpecular,
+            shininess: materialShininess
+        },
         stride: 36, // Bytes between consecutive interleaved attributes
         positionOffset: 0, // Offset for each attribute
         textureOffset: 16,

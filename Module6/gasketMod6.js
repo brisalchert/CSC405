@@ -16,7 +16,9 @@ var right = 6.0;
 var ytop = 3.0;
 var bottom = -3.0;
 
-var modelViewMatrix, projectionMatrix, normalMatrix, lightPosition, orthogonal, translation, rotation, scale;
+var modelViewMatrix, projectionMatrix, normalMatrix, lightPosition, orthogonal;
+var translation, rotation, scale;
+var ambientProduct, diffuseProduct, specularProduct, shininess;
 var eye;
 const at = vec3(0.0, 0.0, 0.0);
 var up = vec3(0.0, 1.0, 0.0);
@@ -36,7 +38,9 @@ const scalingValues = [
     [0.25, 0.25, 0.25]
 ];
 
-var time
+const lightColor = [1.0, 1.0, 1.0];
+
+var time;
 
 var startDragX = null;
 var startDragY = null;
@@ -77,7 +81,11 @@ window.onload = function init() {
             sampler: gl.getUniformLocation(shaderProgram, "uSampler"),
             translation: gl.getUniformLocation(shaderProgram, "uTranslation"),
             rotation: gl.getUniformLocation(shaderProgram, "uRotation"),
-            scale: gl.getUniformLocation(shaderProgram, "uScale")
+            scale: gl.getUniformLocation(shaderProgram, "uScale"),
+            ambientProduct: gl.getUniformLocation(shaderProgram, "uAmbientProduct"),
+            diffuseProduct: gl.getUniformLocation(shaderProgram, "uDiffuseProduct"),
+            specularProduct: gl.getUniformLocation(shaderProgram, "uSpecularProduct"),
+            shininess: gl.getUniformLocation(shaderProgram, "uShininess")
         }
     };
 
@@ -287,9 +295,19 @@ function drawScene(gl, programInfo, buffers) {
         rotation = rotationThetas[objIndex];
         scale = scalingValues[objIndex];
 
+        ambientProduct = mult(buffers.materials.ambient[objIndex], lightColor);
+        diffuseProduct = mult(buffers.materials.diffuse[objIndex], lightColor);
+        specularProduct = mult(buffers.materials.specular[objIndex], lightColor);
+        shininess = buffers.materials.shininess[objIndex];
+
         gl.uniform3fv(programInfo.uniformLocations.translation, translation);
         gl.uniform3fv(programInfo.uniformLocations.rotation, rotation);
         gl.uniform3fv(programInfo.uniformLocations.scale, scale);
+
+        gl.uniform3fv(programInfo.uniformLocations.ambientProduct, ambientProduct);
+        gl.uniform3fv(programInfo.uniformLocations.diffuseProduct, diffuseProduct);
+        gl.uniform3fv(programInfo.uniformLocations.specularProduct, specularProduct);
+        gl.uniform1f(programInfo.uniformLocations.shininess, shininess);
 
         // Set texture for current object
         gl.bindTexture(gl.TEXTURE_2D, textures[objIndex]);
