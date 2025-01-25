@@ -22,7 +22,7 @@ const materialSpecular = [
 ];
 
 const materialShininess = [
-    20.0,
+    3.0,
     1.0
 ];
 

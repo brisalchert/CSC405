@@ -133,7 +133,7 @@
                 vec3 textureColor = vec3(texture2D(uSampler, fTextureCoord));
                 vec3 ambientColor = uAmbientProduct * textureColor;
                 vec3 diffuseColor = uDiffuseProduct * textureColor;
-
+                vec3 specularColor = uSpecularProduct * textureColor;
 
                 // Calculate diffuse, ambient, and specular coefficients.
                 // Ambient light permeates the scene, applying to every surface. Diffuse
@@ -159,7 +159,7 @@
                 }
 
                 // Apply new color as a combination of ambient, diffuse, and specular
-                gl_FragColor = vec4(ambientColor + diffuse * diffuseColor + specular * uSpecularProduct, 1.0);
+                gl_FragColor = vec4(ambientColor + diffuse * diffuseColor + specular * specularColor, 1.0);
             }
         </script>
         <script type="text/javascript" src="../Common/webgl-utils.js"></script>
@@ -247,8 +247,8 @@
                 <p>Light Source Brightness</p>
                 <div class="sliderContainer">
                     <p>0</p>
-                    <input id="lightBrightnessSlider" type="range" min="0.0" max="1.0" step="0.1" value="1.0" />
-                    <p>1</p>
+                    <input id="lightBrightnessSlider" type="range" min="0.0" max="2.0" step="0.1" value="1.0" />
+                    <p>2</p>
                 </div>
             </div>
             <div class="controlsElement">

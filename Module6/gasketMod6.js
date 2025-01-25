@@ -287,18 +287,18 @@ function updateCameraTranslation() {
     // Update the translation matrix based on the camera's current angle
     // and the keys that are being held
     if (cameraMovements[0]) {
-        cameraTranslation[0] -= cameraDelta * Math.sin(cameraTheta);
+        cameraTranslation[0] -= cameraDelta * Math.sin(cameraTheta) * Math.cos(cameraPhi);
         cameraTranslation[1] -= cameraDelta * Math.sin(cameraPhi);
-        cameraTranslation[2] -= cameraDelta * Math.cos(cameraTheta);
+        cameraTranslation[2] -= cameraDelta * Math.cos(cameraTheta) * Math.cos(cameraPhi);
     }
     if (cameraMovements[1]) {
         cameraTranslation[0] -= cameraDelta * Math.cos(cameraTheta);
         cameraTranslation[2] += cameraDelta * Math.sin(cameraTheta);
     }
     if (cameraMovements[2]) {
-        cameraTranslation[0] += cameraDelta * Math.sin(cameraTheta);
+        cameraTranslation[0] += cameraDelta * Math.sin(cameraTheta) * Math.cos(cameraPhi);
         cameraTranslation[1] += cameraDelta * Math.sin(cameraPhi);
-        cameraTranslation[2] += cameraDelta * Math.cos(cameraTheta);
+        cameraTranslation[2] += cameraDelta * Math.cos(cameraTheta) * Math.cos(cameraPhi);
     }
     if (cameraMovements[3]) {
         cameraTranslation[0] += cameraDelta * Math.cos(cameraTheta);
