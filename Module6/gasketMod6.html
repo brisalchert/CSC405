@@ -127,9 +127,6 @@
             uniform float uShininess;
 
             void main() {
-                float pi = (22.0 / 7.0);
-                float offset = (2.0 * pi / 3.0);
-
                 vec3 textureColor = vec3(texture2D(uSampler, fTextureCoord));
                 vec3 ambientColor = uAmbientProduct * textureColor;
                 vec3 diffuseColor = uDiffuseProduct * textureColor;
