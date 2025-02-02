@@ -83,8 +83,8 @@ function divideTriangle(a, b, c, count) {
 }
 
 function initBuffers(gl) {
-    const earthBuffer = initVertexBuffer(gl);
-    const moonBuffer = initVertexBuffer(gl);
+    const earthBuffer = initSphereBuffer(gl);
+    const moonBuffer = initSphereBuffer(gl);
     const buffers = [earthBuffer, moonBuffer];
 
     return {
@@ -103,7 +103,12 @@ function initBuffers(gl) {
     };
 }
 
-function initVertexBuffer(gl) {
+function initSphereBuffer(gl) {
+    // Reset attribute arrays and vertex count
+    positions = [];
+    normals = [];
+    countVertices = 0;
+
     const vertexBuffer = gl.createBuffer();
     gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer);
 
