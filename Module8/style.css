@@ -1,0 +1,97 @@
+:root {
+    font-family: Calibri;
+    height: 100%;
+}
+
+p {
+    color: white;
+    font-size: 0.9rem;
+}
+
+body {
+    position: relative;
+    margin: auto;
+    height: 100%;
+    background-color: white;
+    text-align: center;
+    display: flex;
+    align-items: center;
+}
+
+canvas {
+    width: 100%;
+    height: auto;
+    max-height: 100%;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+#controls {
+    background-color: rgba(128, 128, 128, 0.4);
+    position: absolute;
+    z-index: 10;
+    display: flex;
+    border-radius: 20px;
+    width: 220px;
+    padding: 10px;
+    flex-direction: column;
+    justify-content: center;
+}
+
+#lightControls {
+    background-color: rgba(128, 128, 128, 0.4);
+    position:absolute;
+    z-index: 10;
+    display: flex;
+    border-radius: 20px;
+    width: 220px;
+    padding: 10px;
+    flex-direction: column;
+    justify-content: center;
+    right: 0;
+}
+
+#controls p {
+    margin-top: 5px;
+    margin-bottom: 5px;
+}
+
+.sliderContainer {
+    display: flex;
+}
+
+#perspectiveContainer {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+button {
+    width: 120px;
+    margin: auto;
+}
+
+.controlsElement {
+    margin: 0;
+}
+
+.controlsElement p {
+    margin-top: 0;
+    margin-bottom: 0;
+}
+
+.sliderContainer p {
+    margin: 0;
+    width: 60px;
+}
+
+.sliderContainer input {
+    margin: auto;
+    margin-left: 0;
+    margin-right: 0;
+}
+
+#keyboardControls {
+    text-align: left;
+    margin-left: 50px;
+}
