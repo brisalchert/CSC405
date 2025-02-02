@@ -83,9 +83,11 @@ function divideTriangle(a, b, c, count) {
 }
 
 function initBuffers(gl) {
-    const earthBuffer = initSphereBuffer(gl);
-    const moonBuffer = initSphereBuffer(gl);
+    const [earthBuffer, earthVertexCount] = initSphereBuffer(gl);
+    const [moonBuffer, moonVertexCount] = initSphereBuffer(gl);
+
     const buffers = [earthBuffer, moonBuffer];
+    const vertexCounts = [earthVertexCount, moonVertexCount];
 
     return {
         vertexBuffers: buffers, // Contains a buffer for each object in the scene
@@ -99,7 +101,7 @@ function initBuffers(gl) {
         positionOffset: 0, // Offset for each attribute
         textureOffset: 16,
         normalOffset: 24,
-        vertexCount: countVertices
+        vertexCounts: vertexCounts
     };
 }
 
@@ -126,7 +128,7 @@ function initSphereBuffer(gl) {
 
     gl.bufferData(gl.ARRAY_BUFFER, flatten(attributes), gl.STATIC_DRAW);
 
-    return vertexBuffer;
+    return [vertexBuffer, countVertices];
 }
 
 function initTextureCoords() {

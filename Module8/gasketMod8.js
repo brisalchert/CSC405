@@ -447,7 +447,7 @@ function drawScene(gl, programInfo, buffers) {
         gl.bindTexture(gl.TEXTURE_2D, textures[objIndex]);
         gl.uniform1i(programInfo.uniformLocations.sampler, 0);
 
-        for (var i = 0; i < buffers.vertexCount; i += 3) {
+        for (var i = 0; i < buffers.vertexCounts[objIndex]; i += 3) {
             gl.drawArrays(gl.TRIANGLES, i, 3);
         }
     }
