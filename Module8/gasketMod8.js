@@ -184,6 +184,13 @@ window.onload = function init() {
     document.onkeyup = keyUpHandler;
     document.onkeydown = keyDownHandler;
 
+    // Prevent keydown getting stuck when context menu is open
+    document.addEventListener('contextmenu', () => {
+        for (var i = 0; i < cameraMovements.length; i++) {
+            cameraMovements[i] = false;
+        }
+    });
+
     function render() {
         drawScene(gl, programInfo, buffers);
 
