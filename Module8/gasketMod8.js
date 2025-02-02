@@ -18,7 +18,7 @@ var right = 60.0;
 var ytop = 30.0;
 var bottom = -30.0;
 var near = 0.5;
-const far = 60.0;
+const far = 300.0;
 
 // Uniforms
 var modelViewMatrix, projectionMatrix, normalMatrix, lightPosition;
