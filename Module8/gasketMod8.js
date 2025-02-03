@@ -307,6 +307,11 @@ function updateMoonOrbit() {
 }
 
 function updateCameraTranslation() {
+    // Don't allow translation in orthogonal mode
+    if (orthogonal) {
+        return;
+    }
+
     // Update the translation matrix based on the camera's current angle
     // and the keys that are being held
     if (cameraMovements[0]) {
