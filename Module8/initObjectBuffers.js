@@ -7,22 +7,26 @@ var ve = vec4(-1.0, 0.0, 0.0, 1.0);
 var vf = vec4(0.0, -1.0, 0.0, 1.0);
 
 const materialAmbient = [
-    [0.1, 0.1, 0.1],
-    [0.1, 0.1, 0.1]
+    [0.1, 0.1, 0.1], // Earth
+    [0.1, 0.1, 0.1], // Moon
+    [0.3, 0.3, 0.3]  // Stars
 ];
 
 const materialDiffuse = [
     [0.85, 0.85, 0.85],
-    [0.9, 0.9, 0.9]
+    [0.9, 0.9, 0.9],
+    [0.0, 0.0, 0.0]
 ];
 
 const materialSpecular = [
     [0.7, 0.7, 0.7],
+    [0.0, 0.0, 0.0],
     [0.0, 0.0, 0.0]
 ];
 
 const materialShininess = [
     3.0,
+    1.0,
     1.0
 ];
 
@@ -85,9 +89,10 @@ function divideTriangle(a, b, c, count) {
 function initBuffers(gl) {
     const [earthBuffer, earthVertexCount] = initSphereBuffer(gl);
     const [moonBuffer, moonVertexCount] = initSphereBuffer(gl);
+    const [starsBuffer, starsVertexCount] = initSphereBuffer(gl);
 
-    const buffers = [earthBuffer, moonBuffer];
-    const vertexCounts = [earthVertexCount, moonVertexCount];
+    const buffers = [earthBuffer, moonBuffer, starsBuffer];
+    const vertexCounts = [earthVertexCount, moonVertexCount, starsVertexCount];
 
     return {
         vertexBuffers: buffers, // Contains a buffer for each object in the scene
@@ -115,7 +120,7 @@ function initSphereBuffer(gl) {
     gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer);
 
     tetrahedron(va, vb, vc, vd, ve, vf, subdivide);
-    var textureCoords = initTextureCoords();
+    var textureCoords = initSphereTextureCoords();
 
     var attributes = [];
 
@@ -131,7 +136,7 @@ function initSphereBuffer(gl) {
     return [vertexBuffer, countVertices];
 }
 
-function initTextureCoords() {
+function initSphereTextureCoords() {
     var textureCoords = [];
 
     // Map sphere UV coordinates to rectangular coordinates

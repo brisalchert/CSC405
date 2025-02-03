@@ -18,7 +18,7 @@ var right = 60.0;
 var ytop = 30.0;
 var bottom = -30.0;
 var near = 0.5;
-const far = 300.0;
+const far = 2000.0;
 
 // Uniforms
 var modelViewMatrix, projectionMatrix, normalMatrix, lightPosition;
@@ -47,19 +47,29 @@ keys.set("shift", 5);
 
 // Object transformation vectors
 var objTranslationCoords = [
-    [0.0, 0.0, 0.0],
-    [moonRadius, 0.0, 0.0]
+    [0.0, 0.0, 0.0],        // Earth
+    [moonRadius, 0.0, 0.0], // Moon
+    [0.0, 0.0, 0.0]         // Stars
 ];
 
 const revolutionAngle = 3.0 * Math.PI / 4.0;
 var objRotationThetas = [
     [-23.5 * Math.sin(revolutionAngle), 0.0, -23.5 * Math.cos(revolutionAngle)],
-    [0.0, 0.0, 6.688]
+    [0.0, 0.0, 6.688],
+    [0.0, 0.0, 0.0]
 ];
 
 const objScalingValues = [
     [1.0, 1.0, 1.0],
-    [0.25, 0.25, 0.25]
+    [0.25, 0.25, 0.25],
+    [1000.0, 1000.0, 1000.0]
+];
+
+// Object face culling
+const objCullBackFace = [
+    true,
+    true,
+    false
 ];
 
 // Light source properties
@@ -123,7 +133,8 @@ window.onload = function init() {
 
     textures = [
         loadTexture(gl, "https://miro.medium.com/v2/resize:fit:1400/1*oA3BRueFhJ-R4WccWu5YBg.jpeg"),
-        loadTexture(gl, "https://upload.wikimedia.org/wikipedia/commons/thumb/2/26/Solarsystemscope_texture_2k_moon.jpg/1200px-Solarsystemscope_texture_2k_moon.jpg")
+        loadTexture(gl, "https://upload.wikimedia.org/wikipedia/commons/thumb/2/26/Solarsystemscope_texture_2k_moon.jpg/1200px-Solarsystemscope_texture_2k_moon.jpg"),
+        loadTexture(gl, "https://cdn.eso.org/images/publicationjpg/eso0932a.jpg")
     ];
 
     // Link each object buffer's data to vertex shader attributes
@@ -424,6 +435,13 @@ function drawScene(gl, programInfo, buffers) {
 
     // Draw each object in the scene
     for (var objIndex = 0; objIndex < buffers.vertexBuffers.length; objIndex++) {
+        // Set face culling for current object
+        if (objCullBackFace[objIndex]) {
+            gl.cullFace(gl.BACK);
+        } else {
+            gl.cullFace(gl.FRONT);
+        }
+
         // Set uniforms for current object
         translation = objTranslationCoords[objIndex];
         rotation = objRotationThetas[objIndex];
