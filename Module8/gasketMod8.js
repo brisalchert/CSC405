@@ -180,6 +180,13 @@ window.onload = function init() {
 
     // Set event listener for perspective button
     document.getElementById("perspectiveButton").onclick = function() {
+        // Update scaling for stars
+        if (perspectiveView) {
+            objScalingValues[2] = [7.0, 7.0, 7.0];
+        } else {
+            objScalingValues[2] = [1000.0, 1000.0, 1000.0];
+        }
+
         perspectiveView = !perspectiveView;
         orthogonal = (orthogonal + 1) % 2;
         near = 0.5 - (orthogonal * 5.0);
@@ -308,7 +315,7 @@ function updateMoonOrbit() {
 
 function updateCameraTranslation() {
     // Don't allow translation in orthogonal mode
-    if (orthogonal) {
+    if (!perspectiveView) {
         return;
     }
 
@@ -433,7 +440,12 @@ function drawScene(gl, programInfo, buffers) {
     gl.uniformMatrix4fv(programInfo.uniformLocations.normalMatrix, false, flatten(normalMatrix));
     gl.uniform4fv(programInfo.uniformLocations.lightPosition, lightPosition);
     gl.uniform1i(programInfo.uniformLocations.orthogonal, orthogonal);
-    gl.uniform3fv(programInfo.uniformLocations.cameraTranslation, cameraTranslation);
+    // Don't apply camera translation to orthogonal view
+    if (perspectiveView) {
+        gl.uniform3fv(programInfo.uniformLocations.cameraTranslation, cameraTranslation);
+    } else {
+        gl.uniform3fv(programInfo.uniformLocations.cameraTranslation, vec3());
+    }
 
     // Tell the shader that the texture is bound to texture unit 0
     gl.activeTexture(gl.TEXTURE0);
