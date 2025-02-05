@@ -189,17 +189,11 @@ window.onload = function init() {
 
     // Set event listener for perspective button
     document.getElementById("perspectiveButton").onclick = function() {
-        // Update star scaling and object translation for new view
+        // Update star scaling for new view
         if (perspectiveView) {
             objScalingValues[2] = [40.0, 40.0, 40.0];
-            objTranslationCoords[0][2] = 0.0;
-            objTranslationCoords[1][2] = 0.0;
-            objTranslationCoords[3][2] = 15.0;
         } else {
             objScalingValues[2] = [1000.0, 1000.0, 1000.0];
-            objTranslationCoords[0][2] = -earthRadius;
-            objTranslationCoords[1][2] = -earthRadius;
-            objTranslationCoords[3][2] = 0.0;
         }
 
         perspectiveView = !perspectiveView;
