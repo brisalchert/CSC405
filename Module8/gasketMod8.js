@@ -6,11 +6,14 @@ var canvas;
 var gl;
 
 // Object transformation variables
-var moonRadius = 5.0;
-var moonTheta = 0.0;
+const earthRadius = 40.0;
+var earthOrbit = 0.0;
+const moonRadius = 3.0;
+var moonOrbit = 0.0;
 const earthMoonRatio = 27.323;
 var deltaEarthTheta = 0.25;
-var deltaMoonTheta = deltaEarthTheta / earthMoonRatio;
+var deltaEarthOrbit = 0.000694;
+var deltaMoonOrbit = 0.25 / earthMoonRatio;
 
 // Projection parameters
 var left = -60.0;
@@ -32,7 +35,7 @@ var up = vec3(0.0, 1.0, 0.0);
 var cameraRadius = 10.0;
 var cameraTheta = 0.0;
 var cameraPhi = 0.0;
-var cameraTranslation = [0.0, 0.0, 0.0];
+var cameraTranslation = [0.0, 0.0, -30.0];
 var cameraMovements = [false, false, false, false, false, false];
 const cameraDelta = 0.15;
 
@@ -47,10 +50,10 @@ keys.set("shift", 5);
 
 // Object transformation vectors
 var objTranslationCoords = [
-    [0.0, 0.0, 0.0],        // Earth
-    [moonRadius, 0.0, 0.0], // Moon
-    [0.0, 0.0, 0.0],        // Stars
-    [0.0, 0.0, 250.0]       // Sun
+    [0.0, 0.0, -earthRadius],        // Earth
+    [moonRadius, 0.0, -earthRadius], // Moon
+    [0.0, 0.0, 0.0],                 // Stars
+    [0.0, 0.0, 0.0]                  // Sun
 ];
 
 const revolutionAngle = 3.0 * Math.PI / 4.0;
@@ -65,7 +68,7 @@ const objScalingValues = [
     [1.0, 1.0, 1.0],
     [0.25, 0.25, 0.25],
     [1000.0, 1000.0, 1000.0],
-    [50.0, 50.0, 50.0]
+    [5.0, 5.0, 5.0]
 ];
 
 // Object face culling
@@ -152,7 +155,8 @@ window.onload = function init() {
     // Set event listeners for sliders
     document.getElementById("timeSlider").addEventListener("input", function(event) {
         deltaEarthTheta = 0.25 * parseFloat(event.target.value);
-        deltaMoonTheta = deltaEarthTheta / earthMoonRatio;
+        deltaMoonOrbit = 0.25 * parseFloat(event.target.value) / earthMoonRatio;
+        deltaEarthOrbit = 0.000694 * parseFloat(event.target.value);
     });
     document.getElementById("radiusSlider").addEventListener("input", function(event) {
        cameraRadius = parseFloat(event.target.value);
@@ -185,18 +189,22 @@ window.onload = function init() {
 
     // Set event listener for perspective button
     document.getElementById("perspectiveButton").onclick = function() {
-        // Update scaling and translation for new view
+        // Update star scaling and object translation for new view
         if (perspectiveView) {
-            objScalingValues[2] = [30.0, 30.0, 30.0];
-            objTranslationCoords[3][2] = 65.0;
+            objScalingValues[2] = [40.0, 40.0, 40.0];
+            objTranslationCoords[0][2] = 0.0;
+            objTranslationCoords[1][2] = 0.0;
+            objTranslationCoords[3][2] = 15.0;
         } else {
             objScalingValues[2] = [1000.0, 1000.0, 1000.0];
-            objTranslationCoords[3][2] = 250.0;
+            objTranslationCoords[0][2] = -earthRadius;
+            objTranslationCoords[1][2] = -earthRadius;
+            objTranslationCoords[3][2] = 0.0;
         }
 
         perspectiveView = !perspectiveView;
         orthogonal = (orthogonal + 1) % 2;
-        near = 0.5 - (orthogonal * 5.0);
+        near = 0.5 - (orthogonal * far);
     };
 
     // Set mouse interactivity event handlers
@@ -309,15 +317,23 @@ function updateEarthRotation() {
     objRotationThetas[0][1] += deltaEarthTheta;
 }
 
-function updateMoonOrbit() {
-    moonTheta += deltaMoonTheta;
+function updateEarthOrbit() {
+    earthOrbit += deltaEarthOrbit;
 
     // Calculate new orbit position
-    objTranslationCoords[1][0] = moonRadius * Math.cos(moonTheta * (Math.PI / 180.0));
-    objTranslationCoords[1][2] = moonRadius * -Math.sin(moonTheta * (Math.PI / 180.0));
+    objTranslationCoords[0][0] = earthRadius * -Math.sin(earthOrbit * (Math.PI / 180.0));
+    objTranslationCoords[0][2] = earthRadius * -Math.cos(earthOrbit * (Math.PI / 180.0));
+}
+
+function updateMoonOrbit() {
+    moonOrbit += deltaMoonOrbit;
+
+    // Calculate new orbit position
+    objTranslationCoords[1][0] = objTranslationCoords[0][0] + moonRadius * Math.cos(moonOrbit * (Math.PI / 180.0));
+    objTranslationCoords[1][2] = objTranslationCoords[0][2] + moonRadius * -Math.sin(moonOrbit * (Math.PI / 180.0));
 
     // Adjust rotation for tidal lock
-    objRotationThetas[1][1] += deltaMoonTheta;
+    objRotationThetas[1][1] += deltaMoonOrbit;
 }
 
 function updateCameraTranslation() {
@@ -361,6 +377,7 @@ function updateCameraTranslation() {
 function drawScene(gl, programInfo, buffers) {
     // Update scene object animations
     updateEarthRotation();
+    updateEarthOrbit();
     updateMoonOrbit();
     updateCameraTranslation();
 
