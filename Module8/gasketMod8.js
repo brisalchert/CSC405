@@ -81,7 +81,6 @@ const objCullBackFace = [
 
 // Light source properties
 var lightColor = [1.0, 1.0, 1.0];
-var lightCoords = objTranslationCoords[3];
 
 // Mouse interactivity
 var startDragX = null;
@@ -170,9 +169,6 @@ window.onload = function init() {
     document.getElementById("aspectSlider").addEventListener("input", function(event) {
         right = 60.0 * parseFloat(event.target.value);
         left = -60.0 * parseFloat(event.target.value);
-    });
-    document.getElementById("lightDistanceSlider").addEventListener("input", function(event) {
-        lightCoords = parseFloat(event.target.value);
     });
     document.getElementById("lightBrightnessSlider").addEventListener("input", function(event) {
         var intensity = parseFloat(event.target.value);
@@ -482,7 +478,12 @@ function drawScene(gl, programInfo, buffers) {
         rotation = objRotationThetas[objIndex];
         scale = objScalingValues[objIndex];
 
-        ambientProduct = mult(buffers.materials.ambient[objIndex], lightColor);
+        // Keep stars same brightness at all times
+        if (objIndex == 2) {
+            ambientProduct = buffers.materials.ambient[objIndex];
+        } else {
+            ambientProduct = mult(buffers.materials.ambient[objIndex], lightColor);
+        }
         diffuseProduct = mult(buffers.materials.diffuse[objIndex], lightColor);
         specularProduct = mult(buffers.materials.specular[objIndex], lightColor);
         shininess = buffers.materials.shininess[objIndex];
