@@ -37,7 +37,7 @@ var cameraTheta = 0.0;
 var cameraPhi = 0.0;
 var cameraTranslation = [0.0, 0.0, -30.0];
 var cameraMovements = [false, false, false, false, false, false];
-const cameraDelta = 0.15;
+const cameraDelta = 0.1;
 
 // Key mappings
 const keys = new Map();
@@ -81,7 +81,7 @@ const objCullBackFace = [
 
 // Light source properties
 var lightColor = [1.0, 1.0, 1.0];
-var lightDistance = 100.0;
+var lightCoords = objTranslationCoords[3];
 
 // Mouse interactivity
 var startDragX = null;
@@ -172,7 +172,7 @@ window.onload = function init() {
         left = -60.0 * parseFloat(event.target.value);
     });
     document.getElementById("lightDistanceSlider").addEventListener("input", function(event) {
-        lightDistance = parseFloat(event.target.value);
+        lightCoords = parseFloat(event.target.value);
     });
     document.getElementById("lightBrightnessSlider").addEventListener("input", function(event) {
         var intensity = parseFloat(event.target.value);
@@ -450,7 +450,7 @@ function drawScene(gl, programInfo, buffers) {
     normalMatrix = inverse(modelViewMatrix);
     normalMatrix = transpose(normalMatrix);
 
-    lightPosition = vec4(0.0, 0.0, lightDistance, 1.0);
+    lightPosition = vec4(objTranslationCoords[3], 1.0);
 
     // Pass new values to universal uniforms in the vertex and fragment shaders
     gl.uniformMatrix4fv(programInfo.uniformLocations.modelViewMatrix, false, flatten(modelViewMatrix));

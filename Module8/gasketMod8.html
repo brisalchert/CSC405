@@ -109,7 +109,7 @@
                 fTextureCoord = vTextureCoord;
 
                 // Ensure light source remains fixed relative to objects in the scene
-                fLightPosition = vec3(uModelViewMatrix * uLightPosition);
+                fLightPosition = vec3(uModelViewMatrix * cameraTranslationMatrix * uLightPosition);
             }
         </script>
         <script id="fragment-shader" type="x-shader/x-fragment">
