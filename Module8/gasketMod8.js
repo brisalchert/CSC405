@@ -29,12 +29,12 @@ var ambientProduct, diffuseProduct, specularProduct, shininess;
 var eye;
 const at = vec3(0.0, 0.0, 0.0);
 var up = vec3(0.0, 1.0, 0.0);
-var cameraRadius = 3.0;
+var cameraRadius = 10.0;
 var cameraTheta = 0.0;
 var cameraPhi = 0.0;
 var cameraTranslation = [0.0, 0.0, 0.0];
 var cameraMovements = [false, false, false, false, false, false];
-const cameraDelta = 0.025;
+const cameraDelta = 0.15;
 
 // Key mappings
 const keys = new Map();
@@ -49,32 +49,36 @@ keys.set("shift", 5);
 var objTranslationCoords = [
     [0.0, 0.0, 0.0],        // Earth
     [moonRadius, 0.0, 0.0], // Moon
-    [0.0, 0.0, 0.0]         // Stars
+    [0.0, 0.0, 0.0],        // Stars
+    [0.0, 0.0, 250.0]       // Sun
 ];
 
 const revolutionAngle = 3.0 * Math.PI / 4.0;
 var objRotationThetas = [
     [-23.5 * Math.sin(revolutionAngle), 0.0, -23.5 * Math.cos(revolutionAngle)],
     [0.0, 0.0, 6.688],
+    [0.0, 0.0, 0.0],
     [0.0, 0.0, 0.0]
 ];
 
 const objScalingValues = [
     [1.0, 1.0, 1.0],
     [0.25, 0.25, 0.25],
-    [1000.0, 1000.0, 1000.0]
+    [1000.0, 1000.0, 1000.0],
+    [50.0, 50.0, 50.0]
 ];
 
 // Object face culling
 const objCullBackFace = [
     true,
     true,
-    false
+    false,
+    true
 ];
 
 // Light source properties
 var lightColor = [1.0, 1.0, 1.0];
-var lightDistance = 20.0;
+var lightDistance = 100.0;
 
 // Mouse interactivity
 var startDragX = null;
@@ -134,7 +138,8 @@ window.onload = function init() {
     textures = [
         loadTexture(gl, "https://miro.medium.com/v2/resize:fit:1400/1*oA3BRueFhJ-R4WccWu5YBg.jpeg"),
         loadTexture(gl, "https://upload.wikimedia.org/wikipedia/commons/thumb/2/26/Solarsystemscope_texture_2k_moon.jpg/1200px-Solarsystemscope_texture_2k_moon.jpg"),
-        loadTexture(gl, "https://cdn.eso.org/images/publicationjpg/eso0932a.jpg")
+        loadTexture(gl, "https://upload.wikimedia.org/wikipedia/commons/8/85/Solarsystemscope_texture_8k_stars_milky_way.jpg"),
+        loadTexture(gl, "https://upload.wikimedia.org/wikipedia/commons/c/cb/Solarsystemscope_texture_2k_sun.jpg")
     ];
 
     // Link each object buffer's data to vertex shader attributes
@@ -180,11 +185,13 @@ window.onload = function init() {
 
     // Set event listener for perspective button
     document.getElementById("perspectiveButton").onclick = function() {
-        // Update scaling for stars
+        // Update scaling and translation for new view
         if (perspectiveView) {
-            objScalingValues[2] = [7.0, 7.0, 7.0];
+            objScalingValues[2] = [30.0, 30.0, 30.0];
+            objTranslationCoords[3][2] = 65.0;
         } else {
             objScalingValues[2] = [1000.0, 1000.0, 1000.0];
+            objTranslationCoords[3][2] = 250.0;
         }
 
         perspectiveView = !perspectiveView;
@@ -221,7 +228,7 @@ window.onload = function init() {
 function mouseWheelHandler(e) {
     var delta = Math.max(-1, Math.min(1, (e.wheelDelta || -e.detail)));
 
-    cameraRadius -= 0.15 * delta;
+    cameraRadius -= 0.45 * delta;
 
     // Prevent radius from going out of range
     if (cameraRadius < parseFloat(document.getElementById("radiusSlider").min)) {

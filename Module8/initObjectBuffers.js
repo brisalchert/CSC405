@@ -9,23 +9,27 @@ var vf = vec4(0.0, -1.0, 0.0, 1.0);
 const materialAmbient = [
     [0.1, 0.1, 0.1], // Earth
     [0.1, 0.1, 0.1], // Moon
-    [0.3, 0.3, 0.3]  // Stars
+    [0.7, 0.7, 0.7], // Stars
+    [1.0, 1.0, 1.0]  // Sun
 ];
 
 const materialDiffuse = [
     [0.85, 0.85, 0.85],
     [0.9, 0.9, 0.9],
+    [0.0, 0.0, 0.0],
     [0.0, 0.0, 0.0]
 ];
 
 const materialSpecular = [
     [0.7, 0.7, 0.7],
     [0.0, 0.0, 0.0],
+    [0.0, 0.0, 0.0],
     [0.0, 0.0, 0.0]
 ];
 
 const materialShininess = [
     3.0,
+    1.0,
     1.0,
     1.0
 ];
@@ -90,9 +94,20 @@ function initBuffers(gl) {
     const [earthBuffer, earthVertexCount] = initSphereBuffer(gl);
     const [moonBuffer, moonVertexCount] = initSphereBuffer(gl);
     const [starsBuffer, starsVertexCount] = initSphereBuffer(gl);
+    const [sunBuffer, sunVertexCount] = initSphereBuffer(gl);
 
-    const buffers = [earthBuffer, moonBuffer, starsBuffer];
-    const vertexCounts = [earthVertexCount, moonVertexCount, starsVertexCount];
+    const buffers = [
+        earthBuffer,
+        moonBuffer,
+        starsBuffer,
+        sunBuffer
+    ];
+    const vertexCounts = [
+        earthVertexCount,
+        moonVertexCount,
+        starsVertexCount,
+        sunVertexCount
+    ];
 
     return {
         vertexBuffers: buffers, // Contains a buffer for each object in the scene
