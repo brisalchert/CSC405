@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Interactive Viewer</title>
+        <link rel="stylesheet" href="style.css">
+        <script id="vertex-shader" type="x-shader/x-vertex">
+            attribute vec4 vPosition;
+            attribute vec3 vNormal;
+            attribute vec2 vTextureCoord;
+
+            varying vec3 transformedNormal;
+            varying vec3 fPosition;
+            varying vec2 fTextureCoord;
+
+            uniform mat4 uModelViewMatrix;
+            uniform mat4 uProjectionMatrix;
+            uniform mat4 uNormalMatrix;
+            uniform int uOrthogonal;
+            uniform vec3 uCameraTranslation;
+
+            uniform vec3 uTranslation;
+            uniform vec3 uRotation;
+            uniform vec3 uScale;
+
+            uniform float uScaleMult;
+
+            void main() {
+                // Compute camera translation matrix (use negative values, since
+                // objects should move in the opposite direction of the camera)
+                mat4 cameraTranslationMatrix = mat4(
+                    1.0, 0.0, 0.0, 0.0,
+                    0.0, 1.0, 0.0, 0.0,
+                    0.0, 0.0, 1.0, 0.0,
+                    -uCameraTranslation.x, -uCameraTranslation.y, -uCameraTranslation.z, 1.0
+                );
+
+                // Compute the sines and cosines of theta for each of
+                // the three axes in one computation.
+                vec3 angles = radians(uRotation);
+                vec3 c = cos(angles);
+                vec3 s = sin(angles);
+
+                // Create rotation matrix for the x-axis
+                mat4 xRotationMatrix = mat4(
+                    1.0,  0.0,  0.0, 0.0,
+                    0.0,  c.x,  s.x, 0.0,
+                    0.0, -s.x,  c.x, 0.0,
+                    0.0,  0.0,  0.0, 1.0
+                );
+
+                // Create rotation matrix for the y-axis
+                mat4 yRotationMatrix = mat4(
+                    c.y, 0.0, -s.y, 0.0,
+                    0.0, 1.0,  0.0, 0.0,
+                    s.y, 0.0,  c.y, 0.0,
+                    0.0, 0.0,  0.0, 1.0
+                );
+
+                // Create rotation matrix for the z-axis
+                mat4 zRotationMatrix = mat4(
+                    c.z, s.z, 0.0, 0.0,
+                    -s.z, c.z, 0.0, 0.0,
+                    0.0, 0.0, 1.0, 0.0,
+                    0.0, 0.0, 0.0, 1.0
+                );
+
+                // Apply object pick scaling
+                vec3 scaling = uScale;
+                scaling *= uScaleMult;
+
+                // Create scaling matrix
+                mat4 scalingMatrix = mat4(
+                    scaling.x, 0.0, 0.0, 0.0,
+                    0.0, scaling.y, 0.0, 0.0,
+                    0.0, 0.0, scaling.z, 0.0,
+                    0.0, 0.0, 0.0, 1.0
+                );
+
+                // Create translation matrix
+                mat4 translationMatrix = mat4(
+                    1.0, 0.0, 0.0, 0.0,
+                    0.0, 1.0, 0.0, 0.0,
+                    0.0, 0.0, 1.0, 0.0,
+                    uTranslation.x, uTranslation.y, uTranslation.z, 1.0
+                );
+
+                // Apply y-rotation (About planet axis) first
+                mat4 rotationMatrix = xRotationMatrix * zRotationMatrix * yRotationMatrix;
+                vec4 transformedPosition = translationMatrix * rotationMatrix * scalingMatrix * vPosition;
+
+                // Apply camera translation
+                transformedPosition = cameraTranslationMatrix * transformedPosition;
+
+                // Apply transformation/projection. The model view matrix positions
+                // objects to create the illusion of a change in the position and
+                // orientation of the camera. The projection matrix applies either
+                // orthogonal or perspective projection to the object and converts
+                // the viewing volume (originally in camera coordinates) to the
+                // corresponding clip coordinates.
+
+                transformedPosition = uModelViewMatrix * transformedPosition;
+                gl_Position = uProjectionMatrix * transformedPosition;
+
+                // Negate z-values for orthogonal projection for correct depth ordering
+                if (uOrthogonal == 1) {
+                    gl_Position.z = -gl_Position.z;
+                }
+
+                // Pass texture and normal information to the fragment shader,
+                // making sure to apply the rotationMatrix to the normals
+                fPosition = vec3(transformedPosition) / transformedPosition.w;
+                transformedNormal = vec3(uNormalMatrix * rotationMatrix * vec4(vNormal, 0.0));
+                fTextureCoord = vTextureCoord;
+            }
+        </script>
+        <script id="fragment-shader" type="x-shader/x-fragment">
+            precision mediump float;
+
+            varying vec3 transformedNormal;
+            varying vec3 fPosition;
+            varying vec2 fTextureCoord;
+
+            uniform vec3 uLightDirection;
+            uniform sampler2D uSampler;
+            uniform vec3 uAmbientProduct;
+            uniform vec3 uDiffuseProduct;
+            uniform vec3 uSpecularProduct;
+            uniform float uShininess;
+
+            void main() {
+                vec3 textureColor = vec3(texture2D(uSampler, fTextureCoord));
+                vec3 ambientColor = uAmbientProduct * textureColor;
+                vec3 diffuseColor = uDiffuseProduct * textureColor;
+                vec3 specularColor = uSpecularProduct * textureColor;
+
+                // Calculate diffuse, ambient, and specular coefficients.
+                // Ambient light permeates the scene, applying to every surface. Diffuse
+                // reflections are identical across a polygon, since incoming light is
+                // scattered. Specular reflections are mirror-like reflections where the
+                // light reflects perfectly off of a point.
+
+                // Calculate (normalized) normal vector and light direction vector
+                vec3 norm = normalize(transformedNormal);
+                vec3 light = normalize(uLightDirection);
+
+                float diffuse = max(dot(norm, light), 0.0);
+                float specular = 0.0;
+                if (diffuse > 0.0) {
+                    // Compute the vector between the vertex and the viewer
+                    vec3 viewer = normalize(-fPosition);
+                    // Compute the vector for reflected light
+                    vec3 reflected = -light - 2.0 * dot(norm, -light) * norm;
+                    // Compute specular reflection brightness
+                    float specAngle = max(dot(reflected, viewer), 0.0);
+                    // Dim specular reflection brightness by a shininess value (higher is less shiny)
+                    specular = pow(specAngle, uShininess);
+                }
+
+                // Apply new color as a combination of ambient, diffuse, and specular
+                gl_FragColor = vec4(ambientColor + diffuse * diffuseColor + specular * specularColor, 1.0);
+            }
+        </script>
+        <!-- Object picking vertex shader -->
+        <script id="pick-vertex-shader" type="x-shader/x-vertex">
+            attribute vec4 vPosition;
+
+            uniform mat4 uModelViewMatrix;
+            uniform mat4 uProjectionMatrix;
+            uniform int uOrthogonal;
+            uniform vec3 uCameraTranslation;
+
+            uniform vec3 uTranslation;
+            uniform vec3 uRotation;
+            uniform vec3 uScale;
+
+            void main() {
+                // Compute camera translation matrix (use negative values, since
+                // objects should move in the opposite direction of the camera)
+                mat4 cameraTranslationMatrix = mat4(
+                    1.0, 0.0, 0.0, 0.0,
+                    0.0, 1.0, 0.0, 0.0,
+                    0.0, 0.0, 1.0, 0.0,
+                    -uCameraTranslation.x, -uCameraTranslation.y, -uCameraTranslation.z, 1.0
+                );
+
+                // Compute the sines and cosines of theta for each of
+                // the three axes in one computation.
+                vec3 angles = radians(uRotation);
+                vec3 c = cos(angles);
+                vec3 s = sin(angles);
+
+                // Create rotation matrix for the x-axis
+                mat4 xRotationMatrix = mat4(
+                    1.0,  0.0,  0.0, 0.0,
+                    0.0,  c.x,  s.x, 0.0,
+                    0.0, -s.x,  c.x, 0.0,
+                    0.0,  0.0,  0.0, 1.0
+                );
+
+                // Create rotation matrix for the y-axis
+                mat4 yRotationMatrix = mat4(
+                    c.y, 0.0, -s.y, 0.0,
+                    0.0, 1.0,  0.0, 0.0,
+                    s.y, 0.0,  c.y, 0.0,
+                    0.0, 0.0,  0.0, 1.0
+                );
+
+                // Create rotation matrix for the z-axis
+                mat4 zRotationMatrix = mat4(
+                    c.z, s.z, 0.0, 0.0,
+                    -s.z, c.z, 0.0, 0.0,
+                    0.0, 0.0, 1.0, 0.0,
+                    0.0, 0.0, 0.0, 1.0
+                );
+
+                // Create scaling matrix
+                mat4 scalingMatrix = mat4(
+                    uScale.x, 0.0, 0.0, 0.0,
+                    0.0, uScale.y, 0.0, 0.0,
+                    0.0, 0.0, uScale.z, 0.0,
+                    0.0, 0.0, 0.0, 1.0
+                );
+
+                // Create translation matrix
+                mat4 translationMatrix = mat4(
+                    1.0, 0.0, 0.0, 0.0,
+                    0.0, 1.0, 0.0, 0.0,
+                    0.0, 0.0, 1.0, 0.0,
+                    uTranslation.x, uTranslation.y, uTranslation.z, 1.0
+                );
+
+                // Apply y-rotation (About planet axis) first
+                mat4 rotationMatrix = xRotationMatrix * zRotationMatrix * yRotationMatrix;
+                vec4 transformedPosition = translationMatrix * rotationMatrix * scalingMatrix * vPosition;
+
+                // Apply camera translation
+                transformedPosition = cameraTranslationMatrix * transformedPosition;
+
+                // Apply transformation/projection. The model view matrix positions
+                // objects to create the illusion of a change in the position and
+                // orientation of the camera. The projection matrix applies either
+                // orthogonal or perspective projection to the object and converts
+                // the viewing volume (originally in camera coordinates) to the
+                // corresponding clip coordinates.
+
+                transformedPosition = uModelViewMatrix * transformedPosition;
+                gl_Position = uProjectionMatrix * transformedPosition;
+
+                // Negate z-values for orthogonal projection for correct depth ordering
+                if (uOrthogonal == 1) {
+                    gl_Position.z = -gl_Position.z;
+                }
+            }
+        </script>
+        <!-- Object picking fragment shader -->
+        <script id="pick-fragment-shader" type="x-shader/x-fragment">
+            precision mediump float;
+
+            uniform vec4 uPickID;
+
+            void main() {
+                gl_FragColor = uPickID;
+            }
+        </script>
+        <script type="text/javascript" src="../Common/webgl-utils.js"></script>
+        <script type="text/javascript" src="../Common/initShaders.js"></script>
+        <script type="text/javascript" src="../Common/MV.js"></script>
+        <script type="text/javascript" src="../Common/MV2.js"></script>
+        <script type="text/javascript" src="../Common/textures.js"></script>
+        <script type="text/javascript" src="initHSRBuffers.js"></script>
+        <script type="text/javascript" src="gasketHSR.js"></script>
+    </head>
+    <body>
+        <canvas id="gl-canvas">
+            Sorry; your web browser does not support HTML5's canvas element.
+        </canvas>
+        <div id="controls">
+            <p>Keyboard Controls (relative to camera orientation):</p>
+            <div id="keyboardControls">
+                <p>W : Forwards</p>
+                <p>A : Left</p>
+                <p>S : Backwards</p>
+                <p>D : Right</p>
+                <p>Spacebar : Upwards</p>
+                <p>Shift : Downwards</p>
+            </div>
+            <p>Note: Keyboard controls only available in perspective mode.</p>
+            <p>Click and drag on the image to rotate the camera!</p>
+            <p>Use the scroll wheel to zoom in/out (more easily visible in perspective mode).</p>
+            <p>Hover over an object to enlarge it!</p>
+            <div class="controlsElement">
+                <div id="perspectiveContainer">
+                    <p>Press the button below to toggle between perspective and orthogonal projections.</p>
+                    <button id="perspectiveButton">Toggle view</button>
+                </div>
+            </div>
+        </div>
+        <div id="sliders">
+            <div class="controlsElement">
+                <p>Camera Radius</p>
+                <div class="sliderContainer">
+                    <p>2</p>
+                    <input id="radiusSlider" type="range" min="2.0" max="10.0" step="0.05" value="2.0" />
+                    <p>10</p>
+                </div>
+            </div>
+            <div class="controlsElement">
+                <p>Camera Horizontal Angle</p>
+                <div class="sliderContainer">
+                    <p>0</p>
+                    <input id="thetaSlider" type="range" min="0" max="360" step="2.5" value="0" />
+                    <p>360</p>
+                </div>
+            </div>
+            <div class="controlsElement">
+                <p>Camera Vertical Angle</p>
+                <div class="sliderContainer">
+                    <p>-90</p>
+                    <input id="phiSlider" type="range" min="-90" max="90" step="2.5" value="0" />
+                    <p>90</p>
+                </div>
+            </div>
+            <div class="controlsElement">
+                <p>Aspect Ratio (input value : 1)</p>
+                <div class="sliderContainer">
+                    <p>1</p>
+                    <input id="aspectSlider" type="range" min="1" max="5" step="0.05" value="1" />
+                    <p>5</p>
+                </div>
+            </div>
+        </div>
+        <div id="lightControls">
+            <div class="controlsElement">
+                <p>Light Brightness</p>
+                <div class="sliderContainer">
+                    <p>0</p>
+                    <input id="lightBrightnessSlider" type="range" min="0.0" max="2.0" step="0.1" value="1.0" />
+                    <p>2</p>
+                </div>
+            </div>
+            <div class="controlsElement">
+                <p>Light Color Red</p>
+                <div class="sliderContainer">
+                    <p>0.0</p>
+                    <input id="sunRedSlider" type="range" min="0.0" max="1.0" step="0.01" value="1.0" />
+                    <p>1.0</p>
+                </div>
+            </div>
+            <div class="controlsElement">
+                <p>Light Color Green</p>
+                <div class="sliderContainer">
+                    <p>0.0</p>
+                    <input id="sunGreenSlider" type="range" min="0.0" max="1.0" step="0.01" value="1.0" />
+                    <p>1.0</p>
+                </div>
+            </div>
+            <div class="controlsElement">
+                <p>Light Color Blue</p>
+                <div class="sliderContainer">
+                    <p>0.0</p>
+                    <input id="sunBlueSlider" type="range" min="0.0" max="1.0" step="0.01" value="1.0" />
+                    <p>1.0</p>
+                </div>
+            </div>
+        </div>
+    </body>
+</html>
