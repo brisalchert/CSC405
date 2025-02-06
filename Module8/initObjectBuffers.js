@@ -109,6 +109,20 @@ function initBuffers(gl) {
         sunVertexCount
     ];
 
+    var pickIDs = [];
+
+    // Assign a unique color to each object to be used for object picking
+    for (var i = 0; i < buffers.length; i++) {
+        const id = i + 1;
+
+        pickIDs.push([
+            ((id >>  0) & 0xFF) / 0xFF,
+            ((id >>  8) & 0xFF) / 0xFF,
+            ((id >> 16) & 0xFF) / 0xFF,
+            ((id >> 24) & 0xFF) / 0xFF
+        ])
+    }
+
     return {
         vertexBuffers: buffers, // Contains a buffer for each object in the scene
         materials: {
@@ -121,7 +135,8 @@ function initBuffers(gl) {
         positionOffset: 0, // Offset for each attribute
         textureOffset: 16,
         normalOffset: 24,
-        vertexCounts: vertexCounts
+        vertexCounts: vertexCounts,
+        pickIDs: pickIDs // Identification colors for object picking
     };
 }
 

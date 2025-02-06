@@ -23,7 +23,7 @@ var bottom = -30.0;
 var near = 0.5;
 const far = 2000.0;
 
-// Uniforms
+// Uniform variables
 var modelViewMatrix, projectionMatrix, normalMatrix, lightPosition;
 var translation, rotation, scale;
 var ambientProduct, diffuseProduct, specularProduct, shininess;
@@ -93,6 +93,17 @@ const orthogonalRatio = 10.0;
 
 var textures;
 
+// Object picking variables
+var mouseX = -1;
+var mouseY = -1;
+var oldPickIndex = -1;
+var pickScaling = [
+    0,
+    0,
+    0,
+    0
+];
+
 window.onload = function init() {
     canvas = document.getElementById("gl-canvas");
     gl = WebGLUtils.setupWebGL(canvas);
@@ -107,35 +118,53 @@ window.onload = function init() {
 
     // Load vertex and fragment shaders
     const shaderProgram = initShaders(gl, "vertex-shader", "fragment-shader");
-    gl.useProgram(shaderProgram);
+    const pickShaderProgram = initShaders(gl, "pick-vertex-shader", "pick-fragment-shader");
 
-    const programInfo = {
-        program: shaderProgram,
-        attribLocations: {
-            vertexPosition: gl.getAttribLocation(shaderProgram, "vPosition"),
-            vertexNormal: gl.getAttribLocation(shaderProgram, "vNormal"),
-            vertexTexture: gl.getAttribLocation(shaderProgram, "vTextureCoord")
-        },
-        uniformLocations: {
-            modelViewMatrix: gl.getUniformLocation(shaderProgram, "uModelViewMatrix"),
-            projectionMatrix: gl.getUniformLocation(shaderProgram, "uProjectionMatrix"),
-            normalMatrix: gl.getUniformLocation(shaderProgram, "uNormalMatrix"),
-            lightPosition: gl.getUniformLocation(shaderProgram, "uLightPosition"),
-            orthogonal: gl.getUniformLocation(shaderProgram, "uOrthogonal"),
-            sampler: gl.getUniformLocation(shaderProgram, "uSampler"),
-            translation: gl.getUniformLocation(shaderProgram, "uTranslation"),
-            rotation: gl.getUniformLocation(shaderProgram, "uRotation"),
-            scale: gl.getUniformLocation(shaderProgram, "uScale"),
-            ambientProduct: gl.getUniformLocation(shaderProgram, "uAmbientProduct"),
-            diffuseProduct: gl.getUniformLocation(shaderProgram, "uDiffuseProduct"),
-            specularProduct: gl.getUniformLocation(shaderProgram, "uSpecularProduct"),
-            shininess: gl.getUniformLocation(shaderProgram, "uShininess"),
-            cameraTranslation: gl.getUniformLocation(shaderProgram, "uCameraTranslation")
-        }
-    };
+    const programInfo = getProgramInfo(shaderProgram);
+    const pickProgramInfo = getProgramInfo(pickShaderProgram);
 
     // Initialize interleaved attribute buffers for all scene objects
     const buffers = initBuffers(gl);
+
+    // Create a texture to render to for object picking
+    const targetTexture = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, targetTexture);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+
+    // create a depth renderbuffer
+    const depthBuffer = gl.createRenderbuffer();
+    gl.bindRenderbuffer(gl.RENDERBUFFER, depthBuffer);
+
+    function setFramebufferAttachmentSizes(width, height) {
+        gl.bindTexture(gl.TEXTURE_2D, targetTexture);
+        // define size and format of level 0
+        const level = 0;
+        const internalFormat = gl.RGBA;
+        const border = 0;
+        const format = gl.RGBA;
+        const type = gl.UNSIGNED_BYTE;
+        const data = null;
+        gl.texImage2D(gl.TEXTURE_2D, level, internalFormat,
+                        width, height, border,
+                        format, type, data);
+
+        gl.bindRenderbuffer(gl.RENDERBUFFER, depthBuffer);
+        gl.renderbufferStorage(gl.RENDERBUFFER, gl.DEPTH_COMPONENT16, width, height);
+    }
+
+    // Create and bind the framebuffer
+    const fb = gl.createFramebuffer();
+    gl.bindFramebuffer(gl.FRAMEBUFFER, fb);
+
+    // Attach the texture as the first color attachment
+    const attachmentPoint = gl.COLOR_ATTACHMENT0;
+    const level = 0;
+    gl.framebufferTexture2D(gl.FRAMEBUFFER, attachmentPoint, gl.TEXTURE_2D, targetTexture, level);
+
+    // Make a depth buffer the same size as the targetTexture
+    gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.RENDERBUFFER, depthBuffer);
 
     textures = [
         loadTexture(gl, "https://miro.medium.com/v2/resize:fit:1400/1*oA3BRueFhJ-R4WccWu5YBg.jpeg"),
@@ -197,6 +226,13 @@ window.onload = function init() {
         near = 0.5 - (orthogonal * far);
     };
 
+    // Set event listener for object picking
+    gl.canvas.addEventListener('mousemove', (e) => {
+        const rect = canvas.getBoundingClientRect();
+        mouseX = e.clientX - rect.left;
+        mouseY = e.clientY - rect.top;
+     });
+
     // Set mouse interactivity event handlers
     canvas.onmousedown = mouseDownHandler;
     canvas.onmousemove = mouseMoveHandler;
@@ -215,12 +251,92 @@ window.onload = function init() {
     });
 
     function render() {
+        // Resize the canvas, reset viewport, and match framebuffer attachments
+        resizeCanvasToDisplaySize(gl.canvas);
+        gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
+        setFramebufferAttachmentSizes(gl.canvas.width, gl.canvas.height);
+
+        gl.clearColor(0.0, 0.0, 0.0, 1.0);
+        gl.clearDepth(1.0);
+        gl.enable(gl.DEPTH_TEST);
+        gl.enable(gl.CULL_FACE);
+
+        gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+
+        // Update scene object animations
+        updateEarthRotation();
+        updateEarthOrbit();
+        updateMoonOrbit();
+        updateCameraTranslation();
+
+        // Draw objects to the texture for object picking
+        gl.bindFramebuffer(gl.FRAMEBUFFER, fb);
+        drawScene(gl, pickProgramInfo, buffers);
+
+        // Check if a pixel is selected
+        const pixelX = mouseX * gl.canvas.width / gl.canvas.clientWidth;
+        const pixelY = gl.canvas.height - mouseY * gl.canvas.height / gl.canvas.clientHeight - 1;
+        const data = new Uint8Array(4);
+        gl.readPixels(
+            pixelX,            // x
+            pixelY,            // y
+            1,                 // width
+            1,                 // height
+            gl.RGBA,           // format
+            gl.UNSIGNED_BYTE,  // type
+            data);             // typed array to hold result
+        const id = data[0] + (data[1] << 8) + (data[2] << 16) + (data[3] << 24);
+
+        // Restore unselected object to normal
+        if (oldPickIndex >= 0) {
+            pickScaling[oldPickIndex] = 0;
+            oldPickIndex = -1;
+        }
+
+        // Scale selected object
+        if (id > 0 && id != 3) { // Don't scale stars
+            const pickIndex = id - 1;
+            oldPickIndex = pickIndex;
+            pickScaling[pickIndex] = 1;
+        }
+
+        // // Draw objects to the canvas
+        gl.bindFramebuffer(gl.FRAMEBUFFER, null);
         drawScene(gl, programInfo, buffers);
 
         requestAnimFrame(render);
     }
 
     requestAnimFrame(render);
+}
+
+function getProgramInfo(shaderProgram) {
+    return {
+        program: shaderProgram,
+        attribLocations: {
+            vertexPosition: gl.getAttribLocation(shaderProgram, "vPosition"),
+            vertexNormal: gl.getAttribLocation(shaderProgram, "vNormal"),
+            vertexTexture: gl.getAttribLocation(shaderProgram, "vTextureCoord")
+        },
+        uniformLocations: {
+            modelViewMatrix: gl.getUniformLocation(shaderProgram, "uModelViewMatrix"),
+            projectionMatrix: gl.getUniformLocation(shaderProgram, "uProjectionMatrix"),
+            normalMatrix: gl.getUniformLocation(shaderProgram, "uNormalMatrix"),
+            lightPosition: gl.getUniformLocation(shaderProgram, "uLightPosition"),
+            orthogonal: gl.getUniformLocation(shaderProgram, "uOrthogonal"),
+            sampler: gl.getUniformLocation(shaderProgram, "uSampler"),
+            translation: gl.getUniformLocation(shaderProgram, "uTranslation"),
+            rotation: gl.getUniformLocation(shaderProgram, "uRotation"),
+            scale: gl.getUniformLocation(shaderProgram, "uScale"),
+            ambientProduct: gl.getUniformLocation(shaderProgram, "uAmbientProduct"),
+            diffuseProduct: gl.getUniformLocation(shaderProgram, "uDiffuseProduct"),
+            specularProduct: gl.getUniformLocation(shaderProgram, "uSpecularProduct"),
+            shininess: gl.getUniformLocation(shaderProgram, "uShininess"),
+            cameraTranslation: gl.getUniformLocation(shaderProgram, "uCameraTranslation"),
+            pickID: gl.getUniformLocation(shaderProgram, "uPickID"),
+            scaleMult: gl.getUniformLocation(shaderProgram, "uScaleMult")
+        }
+    };
 }
 
 function mouseWheelHandler(e) {
@@ -365,22 +481,7 @@ function updateCameraTranslation() {
 }
 
 function drawScene(gl, programInfo, buffers) {
-    // Update scene object animations
-    updateEarthRotation();
-    updateEarthOrbit();
-    updateMoonOrbit();
-    updateCameraTranslation();
-
-    // Resize the canvas and reset the viewport
-    resizeCanvasToDisplaySize(gl.canvas);
-    gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
-
-    gl.clearColor(0.0, 0.0, 0.0, 1.0);
-    gl.clearDepth(1.0);
-    gl.enable(gl.DEPTH_TEST);
-    gl.enable(gl.CULL_FACE);
-
-    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+    gl.useProgram(programInfo.program);
 
     // Ensure angles are within range for sliders
     while (cameraTheta < 0) {
@@ -473,7 +574,7 @@ function drawScene(gl, programInfo, buffers) {
             gl.cullFace(gl.FRONT);
         }
 
-        // Set uniforms for current object
+        // Calculate uniforms for current object
         translation = objTranslationCoords[objIndex];
         rotation = objRotationThetas[objIndex];
         scale = objScalingValues[objIndex];
@@ -488,6 +589,7 @@ function drawScene(gl, programInfo, buffers) {
         specularProduct = mult(buffers.materials.specular[objIndex], lightColor);
         shininess = buffers.materials.shininess[objIndex];
 
+        // Set uniforms for current object
         gl.uniform3fv(programInfo.uniformLocations.translation, translation);
         gl.uniform3fv(programInfo.uniformLocations.rotation, rotation);
         gl.uniform3fv(programInfo.uniformLocations.scale, scale);
@@ -496,6 +598,9 @@ function drawScene(gl, programInfo, buffers) {
         gl.uniform3fv(programInfo.uniformLocations.diffuseProduct, diffuseProduct);
         gl.uniform3fv(programInfo.uniformLocations.specularProduct, specularProduct);
         gl.uniform1f(programInfo.uniformLocations.shininess, shininess);
+
+        gl.uniform4fv(programInfo.uniformLocations.pickID, buffers.pickIDs[objIndex]);
+        gl.uniform1i(programInfo.uniformLocations.scaleMult, pickScaling[objIndex]);
 
         // Set texture for current object
         gl.bindTexture(gl.TEXTURE_2D, textures[objIndex]);
