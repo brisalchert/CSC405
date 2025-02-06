@@ -38,35 +38,28 @@ const vertexColors = [
 
 const numElements = 36;
 
-const materialAmbient = [
-    [0.3, 0.3, 0.3],
-    [0.3, 0.3, 0.3]
-];
-
-const materialDiffuse = [
-    [0.85, 0.85, 0.85],
-    [0.85, 0.85, 0.85]
-];
-
-const materialSpecular = [
-    [0.2, 0.2, 0.2],
-    [0.7, 0.7, 0.7]
-];
-
-const materialShininess = [
-    20.0,
-    10.0
-];
-
 function initBuffers(gl) {
     var buffers = [];
     var vertexCounts = [];
+    var materialAmbient = [];
+    var materialDiffuse = [];
+    var materialSpecular = [];
+    var materialShininess = [];
 
     // Initialize buffers and counts for all objects
-    for (var i = 0; i < 2; i++) {
+    for (var i = 0; i < 27; i++) {
         const objectBuffer = initCubeBuffer(gl, numElements);
         buffers.push(objectBuffer);
         vertexCounts.push(numElements);
+
+        materialAmbient.push([0.3, 0.3, 0.3]);
+        materialDiffuse.push([
+            Math.random() * 0.3 + 0.6,
+            Math.random() * 0.3 + 0.6,
+            Math.random() * 0.3 + 0.6
+        ]);
+        materialSpecular.push([Math.random(), Math.random(), Math.random()]);
+        materialShininess.push(Math.random() * 20.0 + 2.0);
     }
 
     var pickIDs = [];

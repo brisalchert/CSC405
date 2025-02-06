@@ -5,6 +5,9 @@ var canvas;
 /** @type {WebGLRenderingContext} */
 var gl;
 
+// Cube transformation variables
+var timeScale = 1.0;
+
 // Projection parameters
 var left = -60.0;
 var right = 60.0;
@@ -22,7 +25,7 @@ var ambientProduct, diffuseProduct, specularProduct, shininess;
 var eye;
 const at = vec3(0.0, 0.0, 0.0);
 var up = vec3(0.0, 1.0, 0.0);
-var cameraRadius = 2.0;
+var cameraRadius = 5.0;
 var cameraTheta = 0.0;
 var cameraPhi = 0.0;
 var cameraTranslation = [0.0, 0.0, 0.0];
@@ -39,27 +42,12 @@ keys.set(" ", 4);
 keys.set("shift", 5);
 
 // Object transformation vectors
-var objTranslationCoords = [
-    [0.0, 0.0, -1.0],
-    [0.0, 0.0, 1.0]
-];
-
-const revolutionAngle = 3.0 * Math.PI / 4.0;
-var objRotationThetas = [
-    [0.0, 0.0, 0.0],
-    [0.0, 0.0, 0.0]
-];
-
-const objScalingValues = [
-    [1.5, 1.5, 1.5],
-    [1.5, 1.5, 1.5]
-];
+var objTranslationCoords = [];
+var objRotationThetas = [];
+var objScalingValues = [];
 
 // Object face culling
-const objCullBackFace = [
-    true,
-    true
-];
+var objCullBackFace = [];
 
 // Light source properties
 var lightColor = [1.0, 1.0, 1.0];
@@ -73,20 +61,14 @@ var perspectiveView = true;
 var orthogonal = 0;
 const orthogonalRatio = 20.0;
 
-var textures;
+var textures = [];
 
 // Object picking variables
 var mouseX = -1;
 var mouseY = -1;
 var oldPickIndex = -1;
-var objectPicked = [
-    false,
-    false
-];
-var pickScaling = [
-    1,
-    1
-];
+var objectPicked = [];
+var pickScaling = [];
 
 window.onload = function init() {
     canvas = document.getElementById("gl-canvas");
@@ -94,11 +76,6 @@ window.onload = function init() {
     if (!gl) {
         alert("WebGL isn't available");
     }
-
-    // Set viewport and set background color to black
-    gl.viewport(0, 0, canvas.width, canvas.height);
-    gl.clearColor(0.0, 0.0, 0.0, 1.0);
-    gl.clear(gl.COLOR_BUFFER_BIT);
 
     // Load vertex and fragment shaders
     const shaderProgram = initShaders(gl, "vertex-shader", "fragment-shader");
@@ -109,6 +86,42 @@ window.onload = function init() {
 
     // Initialize interleaved attribute buffers for all scene objects
     const buffers = initBuffers(gl);
+
+    const universeTextures = [
+        loadTexture(gl, "https://upload.wikimedia.org/wikipedia/commons/9/92/Solarsystemscope_texture_2k_mercury.jpg"), // Mercury
+        loadTexture(gl, "https://upload.wikimedia.org/wikipedia/commons/thumb/1/1c/Solarsystemscope_texture_8k_venus_surface.jpg/2560px-Solarsystemscope_texture_8k_venus_surface.jpg"), // Venus
+        loadTexture(gl, "https://miro.medium.com/v2/resize:fit:1400/1*oA3BRueFhJ-R4WccWu5YBg.jpeg"), // Earth
+        loadTexture(gl, "https://upload.wikimedia.org/wikipedia/commons/e/ea/Mars_%284997052786%29.jpg"), // Mars
+        loadTexture(gl, "https://upload.wikimedia.org/wikipedia/commons/5/5e/Solarsystemscope_texture_8k_jupiter.jpg"), // Jupiter
+        loadTexture(gl, "https://upload.wikimedia.org/wikipedia/commons/1/1e/Solarsystemscope_texture_8k_saturn.jpg"), // Saturn
+        loadTexture(gl, "https://upload.wikimedia.org/wikipedia/commons/9/95/Solarsystemscope_texture_2k_uranus.jpg"), // Uranus
+        loadTexture(gl, "https://upload.wikimedia.org/wikipedia/commons/1/1e/Solarsystemscope_texture_2k_neptune.jpg"), // Neptune
+        loadTexture(gl, "https://upload.wikimedia.org/wikipedia/commons/thumb/2/26/Solarsystemscope_texture_2k_moon.jpg/1200px-Solarsystemscope_texture_2k_moon.jpg"), // Moon
+        loadTexture(gl, "https://upload.wikimedia.org/wikipedia/commons/8/85/Solarsystemscope_texture_8k_stars_milky_way.jpg"), // Stars
+        loadTexture(gl, "https://upload.wikimedia.org/wikipedia/commons/c/cb/Solarsystemscope_texture_2k_sun.jpg") // Sun
+    ];
+
+    // Set up object variables
+    for (var i = 0; i < buffers.vertexBuffers.length; i++) {
+        // Unchanged values
+        objRotationThetas.push([0.0, 0.0, 0.0]);
+        objScalingValues.push([2.0, 2.0, 2.0]);
+        objCullBackFace.push(true);
+        objectPicked.push(false);
+        pickScaling.push(1.0);
+
+        // Translations
+        const objTranslation = [
+            (i % 3) - 1.0,
+            (Math.floor((i / 3) % 3)) - 1.0,
+            (Math.floor(i / 9)) - 1.0
+        ];
+
+        objTranslationCoords.push(objTranslation);
+
+        // Texture
+        textures.push(universeTextures[Math.floor(Math.random() * 11.0)])
+    }
 
     // Create a texture to render to for object picking
     const targetTexture = gl.createTexture();
@@ -149,11 +162,6 @@ window.onload = function init() {
 
     // Make a depth buffer the same size as the targetTexture
     gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.RENDERBUFFER, depthBuffer);
-
-    textures = [
-        loadTexture(gl, "https://upload.wikimedia.org/wikipedia/commons/9/92/Solarsystemscope_texture_2k_mercury.jpg"),
-        loadTexture(gl, "https://upload.wikimedia.org/wikipedia/commons/thumb/1/1c/Solarsystemscope_texture_8k_venus_surface.jpg/2560px-Solarsystemscope_texture_8k_venus_surface.jpg")
-    ];
 
     // Link each object buffer's data to vertex shader attributes
     for (var i = 0; i < buffers.vertexBuffers.length; i++) {
@@ -234,7 +242,7 @@ window.onload = function init() {
         // Update camera position
         updateCameraTranslation();
 
-        gl.clearColor(0.0, 0.0, 0.0, 1.0);
+        gl.clearColor(0.2, 0.2, 0.2, 1.0);
         gl.clearDepth(1.0);
         gl.enable(gl.CULL_FACE);
 
@@ -265,7 +273,7 @@ window.onload = function init() {
         }
 
         // Scale selected object
-        if (id > 0 && id != 10) { // Don't scale stars
+        if (id > 0) {
             const pickIndex = id - 1;
             oldPickIndex = pickIndex;
             objectPicked[pickIndex] = true;
