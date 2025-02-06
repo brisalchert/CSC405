@@ -5,15 +5,62 @@ var canvas;
 /** @type {WebGLRenderingContext} */
 var gl;
 
-// Object transformation variables
-const earthRadius = 40.0;
-var earthOrbit = 0.0;
+// Planet transformation variables
+const planetRadii = [
+    10.0,
+    25.0,
+    40.0,
+    60.0,
+    80.0,
+    100.0,
+    120.0,
+    140.0
+];
+
+var planetOrbits = [
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+];
+
+var deltaPlanetOrbits = [
+    0.005,
+    0.00085,
+    0.000694,
+    0.00045,
+    0.00015,
+    0.0001,
+    0.000085,
+    0.000065
+];
+
+// Constant copy of original orbit deltas for time scaling
+const initDeltaPlanetOrbits = [...deltaPlanetOrbits];
+
+var deltaPlanetThetas = [
+    0.005,
+    0.15,
+    0.25,
+    0.003,
+    0.012,
+    0.059,
+    0.004,
+    0.036
+];
+
+// Constant copy of original rotation deltas for time scaling
+const initDeltaPlanetThetas = [...deltaPlanetThetas];
+
+const earthMoonRatio = 27.323;
 const moonRadius = 3.0;
 var moonOrbit = 0.0;
-const earthMoonRatio = 27.323;
-var deltaEarthTheta = 0.25;
-var deltaEarthOrbit = 0.000694;
 var deltaMoonOrbit = 0.25 / earthMoonRatio;
+
 
 // Projection parameters
 var left = -60.0;
@@ -35,7 +82,7 @@ var up = vec3(0.0, 1.0, 0.0);
 var cameraRadius = 10.0;
 var cameraTheta = 0.0;
 var cameraPhi = 0.0;
-var cameraTranslation = [0.0, 0.0, -30.0];
+var cameraTranslation = [0.0, 0.0, -40.0];
 var cameraMovements = [false, false, false, false, false, false];
 const cameraDelta = 0.1;
 
@@ -50,29 +97,57 @@ keys.set("shift", 5);
 
 // Object transformation vectors
 var objTranslationCoords = [
-    [0.0, 0.0, -earthRadius],        // Earth
-    [moonRadius, 0.0, -earthRadius], // Moon
-    [0.0, 0.0, 0.0],                 // Stars
-    [0.0, 0.0, 0.0]                  // Sun
+    [0.0, 0.0, -planetRadii[0]],        // Mercury
+    [0.0, 0.0, -planetRadii[1]],        // Venus
+    [0.0, 0.0, -planetRadii[2]],        // Earth
+    [0.0, 0.0, -planetRadii[3]],        // Mars
+    [0.0, 0.0, -planetRadii[4]],        // Jupiter
+    [0.0, 0.0, -planetRadii[5]],        // Saturn
+    [0.0, 0.0, -planetRadii[6]],        // Uranus
+    [0.0, 0.0, -planetRadii[7]],        // Neptune
+    [moonRadius, 0.0, -planetRadii[2]], // Moon
+    [0.0, 0.0, 0.0],                    // Stars
+    [0.0, 0.0, 0.0],                    // Sun
 ];
 
 const revolutionAngle = 3.0 * Math.PI / 4.0;
 var objRotationThetas = [
+    [0.0, 0.0, 0.0],
+    [0.0, 0.0, 0.0],
     [-23.5 * Math.sin(revolutionAngle), 0.0, -23.5 * Math.cos(revolutionAngle)],
+    [0.0, 0.0, 0.0],
+    [0.0, 0.0, 0.0],
+    [0.0, 0.0, 0.0],
+    [0.0, 0.0, 0.0],
+    [0.0, 0.0, 0.0],
     [0.0, 0.0, 6.688],
     [0.0, 0.0, 0.0],
     [0.0, 0.0, 0.0]
 ];
 
 const objScalingValues = [
+    [0.3, 0.3, 0.3],
+    [0.9, 0.9, 0.9],
     [1.0, 1.0, 1.0],
+    [0.7, 0.7, 0.7],
+    [3.0, 3.0, 3.0],
+    [2.5, 2.5, 2.5],
+    [1.7, 1.7, 1.7],
+    [1.5, 1.5, 1.5],
     [0.25, 0.25, 0.25],
     [1000.0, 1000.0, 1000.0],
-    [5.0, 5.0, 5.0]
+    [3.5, 3.5, 3.5]
 ];
 
 // Object face culling
 const objCullBackFace = [
+    true,
+    true,
+    true,
+    true,
+    true,
+    true,
+    true,
     true,
     true,
     false,
@@ -101,9 +176,23 @@ var objectPicked = [
     false,
     false,
     false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
     false
 ];
 var pickScaling = [
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
     1,
     1,
     1,
@@ -173,10 +262,17 @@ window.onload = function init() {
     gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.RENDERBUFFER, depthBuffer);
 
     textures = [
-        loadTexture(gl, "https://miro.medium.com/v2/resize:fit:1400/1*oA3BRueFhJ-R4WccWu5YBg.jpeg"),
-        loadTexture(gl, "https://upload.wikimedia.org/wikipedia/commons/thumb/2/26/Solarsystemscope_texture_2k_moon.jpg/1200px-Solarsystemscope_texture_2k_moon.jpg"),
-        loadTexture(gl, "https://upload.wikimedia.org/wikipedia/commons/8/85/Solarsystemscope_texture_8k_stars_milky_way.jpg"),
-        loadTexture(gl, "https://upload.wikimedia.org/wikipedia/commons/c/cb/Solarsystemscope_texture_2k_sun.jpg")
+        loadTexture(gl, "https://upload.wikimedia.org/wikipedia/commons/9/92/Solarsystemscope_texture_2k_mercury.jpg"), // Mercury
+        loadTexture(gl, "https://upload.wikimedia.org/wikipedia/commons/thumb/1/1c/Solarsystemscope_texture_8k_venus_surface.jpg/2560px-Solarsystemscope_texture_8k_venus_surface.jpg"), // Venus
+        loadTexture(gl, "https://miro.medium.com/v2/resize:fit:1400/1*oA3BRueFhJ-R4WccWu5YBg.jpeg"), // Earth
+        loadTexture(gl, "https://upload.wikimedia.org/wikipedia/commons/e/ea/Mars_%284997052786%29.jpg"), // Mars
+        loadTexture(gl, "https://upload.wikimedia.org/wikipedia/commons/5/5e/Solarsystemscope_texture_8k_jupiter.jpg"), // Jupiter
+        loadTexture(gl, "https://upload.wikimedia.org/wikipedia/commons/1/1e/Solarsystemscope_texture_8k_saturn.jpg"), // Saturn
+        loadTexture(gl, "https://upload.wikimedia.org/wikipedia/commons/9/95/Solarsystemscope_texture_2k_uranus.jpg"), // Uranus
+        loadTexture(gl, "https://upload.wikimedia.org/wikipedia/commons/1/1e/Solarsystemscope_texture_2k_neptune.jpg"), // Neptune
+        loadTexture(gl, "https://upload.wikimedia.org/wikipedia/commons/thumb/2/26/Solarsystemscope_texture_2k_moon.jpg/1200px-Solarsystemscope_texture_2k_moon.jpg"), // Moon
+        loadTexture(gl, "https://upload.wikimedia.org/wikipedia/commons/8/85/Solarsystemscope_texture_8k_stars_milky_way.jpg"), // Stars
+        loadTexture(gl, "https://upload.wikimedia.org/wikipedia/commons/c/cb/Solarsystemscope_texture_2k_sun.jpg") // Sun
     ];
 
     // Link each object buffer's data to vertex shader attributes
@@ -188,10 +284,25 @@ window.onload = function init() {
 
     // Set event listeners for sliders
     document.getElementById("timeSlider").addEventListener("input", function(event) {
-        deltaEarthTheta = 0.25 * parseFloat(event.target.value);
-        deltaMoonOrbit = 0.25 * parseFloat(event.target.value) / earthMoonRatio;
-        deltaEarthOrbit = 0.000694 * parseFloat(event.target.value);
+        const timeScale = parseFloat(event.target.value);
+
+        for (var i = 0; i < planetOrbits.length; i++) {
+            deltaPlanetOrbits[i] = initDeltaPlanetOrbits[i] * timeScale;
+            deltaPlanetThetas[i] = initDeltaPlanetThetas[i] * timeScale;
+        }
+
+        deltaMoonOrbit = initDeltaPlanetThetas[2] * timeScale / earthMoonRatio;
     });
+    document.getElementById("timeResetButton").onclick = function() {
+        document.getElementById("timeSlider").value = 1.0;
+
+        for (var i = 0; i < planetOrbits.length; i++) {
+            deltaPlanetOrbits[i] = initDeltaPlanetOrbits[i];
+            deltaPlanetThetas[i] = initDeltaPlanetThetas[i];
+        }
+
+        deltaMoonOrbit = initDeltaPlanetThetas[2] / earthMoonRatio;
+    };
     document.getElementById("radiusSlider").addEventListener("input", function(event) {
        cameraRadius = parseFloat(event.target.value);
     });
@@ -211,20 +322,22 @@ window.onload = function init() {
     });
     document.getElementById("earthSmoothSlider").addEventListener("input", function(event) {
         var specular = parseFloat(event.target.value);
-        buffers.materials.specular[0] = [specular, specular, specular];
+        buffers.materials.specular[2] = [specular, specular, specular];
     });
     document.getElementById("moonSmoothSlider").addEventListener("input", function(event) {
         var specular = parseFloat(event.target.value);
-        buffers.materials.specular[1] = [specular, specular, specular];
+        buffers.materials.specular[8] = [specular, specular, specular];
     });
 
     // Set event listener for perspective button
     document.getElementById("perspectiveButton").onclick = function() {
-        // Update star scaling for new view
+        // Update star scaling and sun position for new view
         if (perspectiveView) {
-            objScalingValues[2] = [40.0, 40.0, 40.0];
+            objScalingValues[9] = [40.0, 40.0, 40.0];
+            objTranslationCoords[10][2] = -40.0;
         } else {
-            objScalingValues[2] = [1000.0, 1000.0, 1000.0];
+            objScalingValues[9] = [1000.0, 1000.0, 1000.0];
+            objTranslationCoords[10][2] = 0.0;
         }
 
         perspectiveView = !perspectiveView;
@@ -270,8 +383,10 @@ window.onload = function init() {
         gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
         // Update scene object animations
-        updateEarthRotation();
-        updateEarthOrbit();
+        for (var planetIndex = 0; planetIndex < planetOrbits.length; planetIndex++) {
+            updatePlanetOrbit(planetIndex);
+            updatePlanetRotation(planetIndex);
+        }
         updateMoonOrbit();
         updateCameraTranslation();
 
@@ -300,7 +415,7 @@ window.onload = function init() {
         }
 
         // Scale selected object
-        if (id > 0 && id != 3) { // Don't scale stars
+        if (id > 0 && id != 10) { // Don't scale stars
             const pickIndex = id - 1;
             oldPickIndex = pickIndex;
             objectPicked[pickIndex] = true;
@@ -425,27 +540,34 @@ function resizeCanvasToDisplaySize(canvas) {
     return needResize;
 }
 
-function updateEarthRotation() {
-    objRotationThetas[0][1] += deltaEarthTheta;
+function updatePlanetRotation(planetIndex) {
+    objRotationThetas[planetIndex][1] += deltaPlanetThetas[planetIndex];
 }
 
-function updateEarthOrbit() {
-    earthOrbit += deltaEarthOrbit;
+function updatePlanetOrbit(planetIndex) {
+    planetOrbits[planetIndex] += deltaPlanetOrbits[planetIndex];
 
     // Calculate new orbit position
-    objTranslationCoords[0][0] = earthRadius * -Math.sin(earthOrbit * (Math.PI / 180.0));
-    objTranslationCoords[0][2] = earthRadius * -Math.cos(earthOrbit * (Math.PI / 180.0));
+    if (perspectiveView) {
+        objTranslationCoords[planetIndex][0] = planetRadii[planetIndex]
+                                             * -Math.sin(planetOrbits[planetIndex] * (Math.PI / 180.0));
+        objTranslationCoords[planetIndex][2] = planetRadii[planetIndex]
+                                             * -Math.cos(planetOrbits[planetIndex] * (Math.PI / 180.0));
+    } else {
+        objTranslationCoords[planetIndex][0] = 0.0;
+        objTranslationCoords[planetIndex][2] = planetRadii[planetIndex] - 40.0;
+    }
 }
 
 function updateMoonOrbit() {
     moonOrbit += deltaMoonOrbit;
 
-    // Calculate new orbit position
-    objTranslationCoords[1][0] = objTranslationCoords[0][0] + moonRadius * Math.cos(moonOrbit * (Math.PI / 180.0));
-    objTranslationCoords[1][2] = objTranslationCoords[0][2] + moonRadius * -Math.sin(moonOrbit * (Math.PI / 180.0));
+    // Calculate new orbit position based on Earth's position
+    objTranslationCoords[8][0] = objTranslationCoords[2][0] + moonRadius * Math.cos(moonOrbit * (Math.PI / 180.0));
+    objTranslationCoords[8][2] = objTranslationCoords[2][2] + moonRadius * -Math.sin(moonOrbit * (Math.PI / 180.0));
 
     // Adjust rotation for tidal lock
-    objRotationThetas[1][1] += deltaMoonOrbit;
+    objRotationThetas[8][1] += deltaMoonOrbit;
 }
 
 function updateCameraTranslation() {
@@ -487,7 +609,7 @@ function updateCameraTranslation() {
 }
 
 function updatePickScaling(objIndex) {
-    if (objectPicked[objIndex] && pickScaling[objIndex] < 1.5) {
+    if (objectPicked[objIndex] && pickScaling[objIndex] < 2.0) {
         pickScaling[objIndex] += 0.025;
     } else if (!objectPicked[objIndex] && pickScaling[objIndex] > 1.0) {
         pickScaling[objIndex] -= 0.025;
@@ -561,7 +683,7 @@ function drawScene(gl, programInfo, buffers) {
     normalMatrix = inverse(modelViewMatrix);
     normalMatrix = transpose(normalMatrix);
 
-    lightPosition = vec4(objTranslationCoords[3], 1.0);
+    lightPosition = vec4(objTranslationCoords[10], 1.0);
 
     // Pass new values to universal uniforms in the vertex and fragment shaders
     gl.uniformMatrix4fv(programInfo.uniformLocations.modelViewMatrix, false, flatten(modelViewMatrix));
@@ -595,7 +717,7 @@ function drawScene(gl, programInfo, buffers) {
         updatePickScaling(objIndex);
 
         // Keep stars same brightness at all times
-        if (objIndex == 2) {
+        if (objIndex == 9) {
             ambientProduct = buffers.materials.ambient[objIndex];
         } else {
             ambientProduct = mult(buffers.materials.ambient[objIndex], lightColor);

@@ -60,7 +60,7 @@ canvas {
     display: flex;
 }
 
-#perspectiveContainer {
+#perspectiveContainer, #timeResetContainer {
     display: flex;
     flex-direction: column;
     justify-content: center;

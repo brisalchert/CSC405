@@ -7,7 +7,14 @@ var ve = vec4(-1.0, 0.0, 0.0, 1.0);
 var vf = vec4(0.0, -1.0, 0.0, 1.0);
 
 const materialAmbient = [
+    [0.1, 0.1, 0.1], // Mercury
+    [0.1, 0.1, 0.1], // Venus
     [0.1, 0.1, 0.1], // Earth
+    [0.1, 0.1, 0.1], // Mars
+    [0.1, 0.1, 0.1], // Jupiter
+    [0.1, 0.1, 0.1], // Saturn
+    [0.1, 0.1, 0.1], // Uranus
+    [0.1, 0.1, 0.1], // Neptune
     [0.1, 0.1, 0.1], // Moon
     [0.7, 0.7, 0.7], // Stars
     [1.0, 1.0, 1.0]  // Sun
@@ -15,13 +22,27 @@ const materialAmbient = [
 
 const materialDiffuse = [
     [0.85, 0.85, 0.85],
+    [0.85, 0.85, 0.85],
+    [0.85, 0.85, 0.85],
+    [0.85, 0.85, 0.85],
+    [0.85, 0.85, 0.85],
+    [0.85, 0.85, 0.85],
+    [0.85, 0.85, 0.85],
+    [0.85, 0.85, 0.85],
     [0.9, 0.9, 0.9],
     [0.0, 0.0, 0.0],
     [0.0, 0.0, 0.0]
 ];
 
 const materialSpecular = [
+    [0.5, 0.5, 0.5],
+    [0.6, 0.6, 0.6],
     [0.7, 0.7, 0.7],
+    [0.5, 0.5, 0.5],
+    [0.1, 0.1, 0.1],
+    [0.2, 0.2, 0.2],
+    [0.1, 0.1, 0.1],
+    [0.15, 0.15, 0.15],
     [0.0, 0.0, 0.0],
     [0.0, 0.0, 0.0],
     [0.0, 0.0, 0.0]
@@ -29,16 +50,23 @@ const materialSpecular = [
 
 const materialShininess = [
     3.0,
+    3.0,
+    3.0,
+    3.0,
+    3.0,
+    3.0,
+    3.0,
+    3.0,
     1.0,
     1.0,
-    1.0
+    1.0,
 ];
 
 var positions = [];
 var normals = [];
 var countVertices = 0;
 
-const subdivide = 5;
+const subdivide = 4;
 
 function triangle(a, b, c) {
     positions.push(a);
@@ -91,23 +119,15 @@ function divideTriangle(a, b, c, count) {
 }
 
 function initBuffers(gl) {
-    const [earthBuffer, earthVertexCount] = initSphereBuffer(gl);
-    const [moonBuffer, moonVertexCount] = initSphereBuffer(gl);
-    const [starsBuffer, starsVertexCount] = initSphereBuffer(gl);
-    const [sunBuffer, sunVertexCount] = initSphereBuffer(gl);
+    var buffers = [];
+    var vertexCounts = [];
 
-    const buffers = [
-        earthBuffer,
-        moonBuffer,
-        starsBuffer,
-        sunBuffer
-    ];
-    const vertexCounts = [
-        earthVertexCount,
-        moonVertexCount,
-        starsVertexCount,
-        sunVertexCount
-    ];
+    // Initialize buffers and counts for all objects
+    for (var i = 0; i < materialAmbient.length; i++) {
+        const [objectBuffer, objectVertexCount] = initSphereBuffer(gl);
+        buffers.push(objectBuffer);
+        vertexCounts.push(objectVertexCount);
+    }
 
     var pickIDs = [];
 
