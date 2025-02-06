@@ -317,16 +317,17 @@ window.onload = function init() {
         left = -60.0 * parseFloat(event.target.value);
     });
     document.getElementById("lightBrightnessSlider").addEventListener("input", function(event) {
-        var intensity = parseFloat(event.target.value);
+        const intensity = parseFloat(event.target.value);
         lightColor = [intensity, intensity, intensity];
     });
-    document.getElementById("earthSmoothSlider").addEventListener("input", function(event) {
-        var specular = parseFloat(event.target.value);
-        buffers.materials.specular[2] = [specular, specular, specular];
+    document.getElementById("sunRedSlider").addEventListener("input", function(event) {
+        lightColor[0] = event.target.value;
     });
-    document.getElementById("moonSmoothSlider").addEventListener("input", function(event) {
-        var specular = parseFloat(event.target.value);
-        buffers.materials.specular[8] = [specular, specular, specular];
+    document.getElementById("sunGreenSlider").addEventListener("input", function(event) {
+        lightColor[1] = event.target.value;
+    });
+    document.getElementById("sunBlueSlider").addEventListener("input", function(event) {
+        lightColor[2] = event.target.value;
     });
 
     // Set event listener for perspective button

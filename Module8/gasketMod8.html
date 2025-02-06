@@ -292,6 +292,7 @@
             <p>Note: Keyboard controls only available in perspective mode.</p>
             <p>Click and drag on the image to rotate the camera!</p>
             <p>Use the scroll wheel to zoom in/out (more easily visible in perspective mode).</p>
+            <p>Hover over an object to enlarge it!</p>
             <div class="controlsElement">
                 <div id="perspectiveContainer">
                     <p>Press the button below to toggle between perspective and orthogonal projections.</p>
@@ -354,19 +355,27 @@
                 </div>
             </div>
             <div class="controlsElement">
-                <p>Earth Smoothness</p>
+                <p>Sun Color Red</p>
                 <div class="sliderContainer">
-                    <p>Rough</p>
-                    <input id="earthSmoothSlider" type="range" min="0.0" max="1.0" step="0.1" value="0.7" />
-                    <p>Smooth</p>
+                    <p>0.0</p>
+                    <input id="sunRedSlider" type="range" min="0.0" max="1.0" step="0.01" value="1.0" />
+                    <p>1.0</p>
                 </div>
             </div>
             <div class="controlsElement">
-                <p>Moon Smoothness</p>
+                <p>Sun Color Green</p>
                 <div class="sliderContainer">
-                    <p>Rough</p>
-                    <input id="moonSmoothSlider" type="range" min="0.0" max="1.0" step="0.1" value="0.0" />
-                    <p>Smooth</p>
+                    <p>0.0</p>
+                    <input id="sunGreenSlider" type="range" min="0.0" max="1.0" step="0.01" value="1.0" />
+                    <p>1.0</p>
+                </div>
+            </div>
+            <div class="controlsElement">
+                <p>Sun Color Blue</p>
+                <div class="sliderContainer">
+                    <p>0.0</p>
+                    <input id="sunBlueSlider" type="range" min="0.0" max="1.0" step="0.01" value="1.0" />
+                    <p>1.0</p>
                 </div>
             </div>
         </div>
