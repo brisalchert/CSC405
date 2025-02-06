@@ -24,7 +24,7 @@
             uniform vec3 uRotation;
             uniform vec3 uScale;
 
-            uniform int uScaleMult;
+            uniform float uScaleMult;
 
             void main() {
                 // Compute camera translation matrix (use negative values, since
@@ -68,10 +68,7 @@
 
                 // Apply object pick scaling
                 vec3 scaling = uScale;
-
-                if (uScaleMult == 1) {
-                    scaling *= 1.2;
-                }
+                scaling *= uScaleMult;
 
                 // Create scaling matrix
                 mat4 scalingMatrix = mat4(

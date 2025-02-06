@@ -97,11 +97,17 @@ var textures;
 var mouseX = -1;
 var mouseY = -1;
 var oldPickIndex = -1;
+var objectPicked = [
+    false,
+    false,
+    false,
+    false
+];
 var pickScaling = [
-    0,
-    0,
-    0,
-    0
+    1,
+    1,
+    1,
+    1
 ];
 
 window.onload = function init() {
@@ -289,7 +295,7 @@ window.onload = function init() {
 
         // Restore unselected object to normal
         if (oldPickIndex >= 0) {
-            pickScaling[oldPickIndex] = 0;
+            objectPicked[oldPickIndex] = false;
             oldPickIndex = -1;
         }
 
@@ -297,7 +303,7 @@ window.onload = function init() {
         if (id > 0 && id != 3) { // Don't scale stars
             const pickIndex = id - 1;
             oldPickIndex = pickIndex;
-            pickScaling[pickIndex] = 1;
+            objectPicked[pickIndex] = true;
         }
 
         // // Draw objects to the canvas
@@ -480,6 +486,14 @@ function updateCameraTranslation() {
     }
 }
 
+function updatePickScaling(objIndex) {
+    if (objectPicked[objIndex] && pickScaling[objIndex] < 1.5) {
+        pickScaling[objIndex] += 0.025;
+    } else if (!objectPicked[objIndex] && pickScaling[objIndex] > 1.0) {
+        pickScaling[objIndex] -= 0.025;
+    }
+}
+
 function drawScene(gl, programInfo, buffers) {
     gl.useProgram(programInfo.program);
 
@@ -578,6 +592,7 @@ function drawScene(gl, programInfo, buffers) {
         translation = objTranslationCoords[objIndex];
         rotation = objRotationThetas[objIndex];
         scale = objScalingValues[objIndex];
+        updatePickScaling(objIndex);
 
         // Keep stars same brightness at all times
         if (objIndex == 2) {
@@ -600,7 +615,7 @@ function drawScene(gl, programInfo, buffers) {
         gl.uniform1f(programInfo.uniformLocations.shininess, shininess);
 
         gl.uniform4fv(programInfo.uniformLocations.pickID, buffers.pickIDs[objIndex]);
-        gl.uniform1i(programInfo.uniformLocations.scaleMult, pickScaling[objIndex]);
+        gl.uniform1f(programInfo.uniformLocations.scaleMult, pickScaling[objIndex]);
 
         // Set texture for current object
         gl.bindTexture(gl.TEXTURE_2D, textures[objIndex]);
