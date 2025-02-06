@@ -12,7 +12,7 @@ body {
     position: relative;
     margin: auto;
     height: 100%;
-    background-color: white;
+    background-color: black;
     text-align: center;
     display: flex;
     align-items: center;
@@ -20,10 +20,7 @@ body {
 
 canvas {
     width: 100%;
-    height: auto;
-    max-height: 100%;
-    margin-left: auto;
-    margin-right: auto;
+    aspect-ratio: 2.0;
 }
 
 #controls {
@@ -36,6 +33,23 @@ canvas {
     padding: 10px;
     flex-direction: column;
     justify-content: center;
+}
+
+#sliders {
+    background-color: rgba(128, 128, 128, 0.4);
+    position: absolute;
+    z-index: 10;
+    display: flex;
+    border-radius: 20px;
+    padding: 10px;
+    flex-direction: row;
+    justify-content: center;
+    bottom: 50px;
+    position: absolute;
+    left: 0;
+    right: 0;
+    margin-inline: auto;
+    width: fit-content;
 }
 
 #lightControls {
@@ -82,7 +96,7 @@ button {
 
 .sliderContainer p {
     margin: 0;
-    width: 60px;
+    width: 40px;
 }
 
 .sliderContainer input {
