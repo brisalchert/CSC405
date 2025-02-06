@@ -318,16 +318,20 @@ window.onload = function init() {
     });
     document.getElementById("lightBrightnessSlider").addEventListener("input", function(event) {
         const intensity = parseFloat(event.target.value);
-        lightColor = [intensity, intensity, intensity];
+        const red = parseFloat(document.getElementById("sunRedSlider").value);
+        const green = parseFloat(document.getElementById("sunGreenSlider").value);
+        const blue = parseFloat(document.getElementById("sunBlueSlider").value);
+
+        lightColor = [intensity * red, intensity * green, intensity * blue];
     });
     document.getElementById("sunRedSlider").addEventListener("input", function(event) {
-        lightColor[0] = event.target.value;
+        lightColor[0] = parseFloat(event.target.value);
     });
     document.getElementById("sunGreenSlider").addEventListener("input", function(event) {
-        lightColor[1] = event.target.value;
+        lightColor[1] = parseFloat(event.target.value);
     });
     document.getElementById("sunBlueSlider").addEventListener("input", function(event) {
-        lightColor[2] = event.target.value;
+        lightColor[2] = parseFloat(event.target.value);
     });
 
     // Set event listener for perspective button
