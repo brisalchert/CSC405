@@ -7,7 +7,7 @@ var gl;
 
 // Cube transformation variables
 var timeScale = 1.0;
-
+var temp = 0;
 // Projection parameters
 var left = -60.0;
 var right = 60.0;
@@ -41,14 +41,6 @@ keys.set("d", 3);
 keys.set(" ", 4);
 keys.set("shift", 5);
 
-// Object transformation vectors
-var objTranslationCoords = [];
-var objRotationThetas = [];
-var objScalingValues = [];
-
-// Object face culling
-var objCullBackFace = [];
-
 // Light source properties
 var lightColor = [1.0, 1.0, 1.0];
 
@@ -61,14 +53,8 @@ var perspectiveView = true;
 var orthogonal = 0;
 const orthogonalRatio = 20.0;
 
-var textures = [];
-
-// Object picking variables
-var mouseX = -1;
-var mouseY = -1;
-var oldPickIndex = -1;
-var objectPicked = [];
-var pickScaling = [];
+// Object textures
+var universeTextures;
 
 window.onload = function init() {
     canvas = document.getElementById("gl-canvas");
@@ -79,15 +65,15 @@ window.onload = function init() {
 
     // Load vertex and fragment shaders
     const shaderProgram = initShaders(gl, "vertex-shader", "fragment-shader");
-    const pickShaderProgram = initShaders(gl, "pick-vertex-shader", "pick-fragment-shader");
-
     const programInfo = getProgramInfo(shaderProgram);
-    const pickProgramInfo = getProgramInfo(pickShaderProgram);
+    gl.useProgram(programInfo.program);
 
-    // Initialize interleaved attribute buffers for all scene objects
-    const buffers = initBuffers(gl);
+    // Initialize triangles for cubes in scene
+    const triangles = initTriangles(gl);
+    const numTriPerCube = 12;
+    const numCubes = 27;
 
-    const universeTextures = [
+    universeTextures = [
         loadTexture(gl, "https://upload.wikimedia.org/wikipedia/commons/9/92/Solarsystemscope_texture_2k_mercury.jpg"), // Mercury
         loadTexture(gl, "https://upload.wikimedia.org/wikipedia/commons/thumb/1/1c/Solarsystemscope_texture_8k_venus_surface.jpg/2560px-Solarsystemscope_texture_8k_venus_surface.jpg"), // Venus
         loadTexture(gl, "https://miro.medium.com/v2/resize:fit:1400/1*oA3BRueFhJ-R4WccWu5YBg.jpeg"), // Earth
@@ -100,75 +86,6 @@ window.onload = function init() {
         loadTexture(gl, "https://upload.wikimedia.org/wikipedia/commons/8/85/Solarsystemscope_texture_8k_stars_milky_way.jpg"), // Stars
         loadTexture(gl, "https://upload.wikimedia.org/wikipedia/commons/c/cb/Solarsystemscope_texture_2k_sun.jpg") // Sun
     ];
-
-    // Set up object variables
-    for (var i = 0; i < buffers.vertexBuffers.length; i++) {
-        // Unchanged values
-        objRotationThetas.push([0.0, 0.0, 0.0]);
-        objScalingValues.push([2.0, 2.0, 2.0]);
-        objCullBackFace.push(true);
-        objectPicked.push(false);
-        pickScaling.push(1.0);
-
-        // Translations
-        const objTranslation = [
-            (i % 3) - 1.0,
-            (Math.floor((i / 3) % 3)) - 1.0,
-            (Math.floor(i / 9)) - 1.0
-        ];
-
-        objTranslationCoords.push(objTranslation);
-
-        // Texture
-        textures.push(universeTextures[Math.floor(Math.random() * 11.0)])
-    }
-
-    // Create a texture to render to for object picking
-    const targetTexture = gl.createTexture();
-    gl.bindTexture(gl.TEXTURE_2D, targetTexture);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-
-    // create a depth renderbuffer
-    const depthBuffer = gl.createRenderbuffer();
-    gl.bindRenderbuffer(gl.RENDERBUFFER, depthBuffer);
-
-    function setFramebufferAttachmentSizes(width, height) {
-        gl.bindTexture(gl.TEXTURE_2D, targetTexture);
-        // define size and format of level 0
-        const level = 0;
-        const internalFormat = gl.RGBA;
-        const border = 0;
-        const format = gl.RGBA;
-        const type = gl.UNSIGNED_BYTE;
-        const data = null;
-        gl.texImage2D(gl.TEXTURE_2D, level, internalFormat,
-                        width, height, border,
-                        format, type, data);
-
-        gl.bindRenderbuffer(gl.RENDERBUFFER, depthBuffer);
-        gl.renderbufferStorage(gl.RENDERBUFFER, gl.DEPTH_COMPONENT16, width, height);
-    }
-
-    // Create and bind the framebuffer
-    const fb = gl.createFramebuffer();
-    gl.bindFramebuffer(gl.FRAMEBUFFER, fb);
-
-    // Attach the texture as the first color attachment
-    const attachmentPoint = gl.COLOR_ATTACHMENT0;
-    const level = 0;
-    gl.framebufferTexture2D(gl.FRAMEBUFFER, attachmentPoint, gl.TEXTURE_2D, targetTexture, level);
-
-    // Make a depth buffer the same size as the targetTexture
-    gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.RENDERBUFFER, depthBuffer);
-
-    // Link each object buffer's data to vertex shader attributes
-    for (var i = 0; i < buffers.vertexBuffers.length; i++) {
-        setPositionAttribute(gl, buffers, i, programInfo);
-        setTextureAttribute(gl, buffers, i, programInfo);
-        setNormalAttribute(gl, buffers, i, programInfo);
-    }
 
     // Set event listeners for sliders
     document.getElementById("radiusSlider").addEventListener("input", function(event) {
@@ -209,13 +126,6 @@ window.onload = function init() {
         near = 0.5 - (orthogonal * far);
     };
 
-    // Set event listener for object picking
-    gl.canvas.addEventListener('mousemove', (e) => {
-        const rect = canvas.getBoundingClientRect();
-        mouseX = e.clientX - rect.left;
-        mouseY = e.clientY - rect.top;
-     });
-
     // Set mouse interactivity event handlers
     canvas.onmousedown = mouseDownHandler;
     canvas.onmousemove = mouseMoveHandler;
@@ -234,10 +144,9 @@ window.onload = function init() {
     });
 
     function render() {
-        // Resize the canvas, reset viewport, and match framebuffer attachments
+        // Resize the canvas and reset viewport
         resizeCanvasToDisplaySize(gl.canvas);
         gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
-        setFramebufferAttachmentSizes(gl.canvas.width, gl.canvas.height);
 
         // Update camera position
         updateCameraTranslation();
@@ -248,40 +157,8 @@ window.onload = function init() {
 
         gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
-        // Draw objects to the texture for object picking
-        gl.bindFramebuffer(gl.FRAMEBUFFER, fb);
-        drawScene(gl, pickProgramInfo, buffers);
-
-        // Check if a pixel is selected
-        const pixelX = mouseX * gl.canvas.width / gl.canvas.clientWidth;
-        const pixelY = gl.canvas.height - mouseY * gl.canvas.height / gl.canvas.clientHeight - 1;
-        const data = new Uint8Array(4);
-        gl.readPixels(
-            pixelX,            // x
-            pixelY,            // y
-            1,                 // width
-            1,                 // height
-            gl.RGBA,           // format
-            gl.UNSIGNED_BYTE,  // type
-            data);             // typed array to hold result
-        const id = data[0] + (data[1] << 8) + (data[2] << 16) + (data[3] << 24);
-
-        // Restore unselected object to normal
-        if (oldPickIndex >= 0) {
-            objectPicked[oldPickIndex] = false;
-            oldPickIndex = -1;
-        }
-
-        // Scale selected object
-        if (id > 0) {
-            const pickIndex = id - 1;
-            oldPickIndex = pickIndex;
-            objectPicked[pickIndex] = true;
-        }
-
         // // Draw objects to the canvas
-        gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-        drawScene(gl, programInfo, buffers);
+        drawScene(gl, programInfo, triangles);
 
         requestAnimFrame(render);
     }
@@ -436,17 +313,7 @@ function updateCameraTranslation() {
     }
 }
 
-function updatePickScaling(objIndex) {
-    if (objectPicked[objIndex] && pickScaling[objIndex] < 2.0) {
-        pickScaling[objIndex] += 0.025;
-    } else if (!objectPicked[objIndex] && pickScaling[objIndex] > 1.0) {
-        pickScaling[objIndex] -= 0.025;
-    }
-}
-
-function drawScene(gl, programInfo, buffers) {
-    gl.useProgram(programInfo.program);
-
+function drawScene(gl, programInfo, triangles) {
     // Ensure angles are within range for sliders
     while (cameraTheta < 0) {
         cameraTheta += 2.0 * Math.PI;
@@ -529,27 +396,82 @@ function drawScene(gl, programInfo, buffers) {
     // Tell the shader that the texture is bound to texture unit 0
     gl.activeTexture(gl.TEXTURE0);
 
-    // Draw each object in the scene
-    for (var objIndex = 0; objIndex < buffers.vertexBuffers.length; objIndex++) {
-        // Set face culling for current object
-        if (objCullBackFace[objIndex]) {
-            gl.cullFace(gl.BACK);
-        } else {
-            gl.cullFace(gl.FRONT);
+    // Find average depth for each triangle
+    for (var triangleIndex = 0; triangleIndex < triangles.length; triangleIndex++) {
+        // Calculate vertex z-values after transformations are applied
+        const matrices = getTransformMatrices(triangles, triangleIndex);
+        var zValues = [];
+
+        for (var i = 0; i < triangles[triangleIndex].vertices.length; i++) {
+            var vertex = triangles[triangleIndex].vertices[i];
+
+            // Apply object transformations to z-coordinate
+            vertex = transformVector4(matrices.scaling, vertex);
+            vertex = transformVector4(matrices.rotation, vertex);
+            vertex = transformVector4(matrices.translation, vertex);
+            vertex = transformVector4(matrices.camera, vertex);
+            vertex = transformVector4(modelViewMatrix, vertex);
+
+            zValues.push(vertex[2]);
         }
 
-        // Calculate uniforms for current object
-        translation = objTranslationCoords[objIndex];
-        rotation = objRotationThetas[objIndex];
-        scale = objScalingValues[objIndex];
-        updatePickScaling(objIndex);
+        var sum = 0.0;
+        for (var i = 0; i < zValues.length; i++) {
+            sum += zValues[i];
+        }
 
-        ambientProduct = mult(buffers.materials.ambient[objIndex], lightColor);
-        diffuseProduct = mult(buffers.materials.diffuse[objIndex], lightColor);
-        specularProduct = mult(buffers.materials.specular[objIndex], lightColor);
-        shininess = buffers.materials.shininess[objIndex];
+        const avgDepth = sum / zValues.length;
 
-        // Set uniforms for current object
+        // Set new object attribute for average depth
+        triangles[triangleIndex].depth = avgDepth;
+    }
+
+    // Sort triangles by maximum depth (descending)
+    triangles.sort((a, b) => a.depth - b.depth);
+
+    // Create buffer for triangle data
+    const vertexBuffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer);
+
+    var attributes = [];
+
+    // Interleave vertex attributes within buffer
+    for (var triangleIndex = 0; triangleIndex < triangles.length; triangleIndex++) {
+        for (var i = 0; i < 3; i++) {
+            attributes.push(triangles[triangleIndex].vertices[i]);
+            attributes.push(triangles[triangleIndex].textures[i]);
+            attributes.push(triangles[triangleIndex].normals[i]);
+        }
+    }
+
+    gl.bufferData(gl.ARRAY_BUFFER, flatten(attributes), gl.STATIC_DRAW);
+
+    const triangleBuffer = {
+        vertexBuffer: vertexBuffer,
+        stride: 36, // Bytes between consecutive interleaved attributes
+        positionOffset: 0, // Offset for each attribute
+        textureOffset: 16,
+        normalOffset: 24,
+    };
+
+    // Link buffer data to vertex shader attributes
+    setPositionAttribute(gl, triangleBuffer, programInfo);
+    setTextureAttribute(gl, triangleBuffer, programInfo);
+    setNormalAttribute(gl, triangleBuffer, programInfo);
+
+    // Draw each triangle
+    for (var triangleIndex = 0; triangleIndex < triangles.length; triangleIndex++) {
+        // Calculate uniforms for current triangle
+        translation = triangles[triangleIndex].translation;
+        rotation = triangles[triangleIndex].rotation;
+        scale = triangles[triangleIndex].scaling;
+
+        ambientProduct = mult(triangles[triangleIndex].materials.ambient, lightColor);
+        diffuseProduct = mult(triangles[triangleIndex].materials.diffuse, lightColor);
+        specularProduct = mult(triangles[triangleIndex].materials.specular, lightColor);
+        shininess = triangles[triangleIndex].materials.shininess;
+
+        // Set uniforms for current triangle
         gl.uniform3fv(programInfo.uniformLocations.translation, translation);
         gl.uniform3fv(programInfo.uniformLocations.rotation, rotation);
         gl.uniform3fv(programInfo.uniformLocations.scale, scale);
@@ -559,27 +481,22 @@ function drawScene(gl, programInfo, buffers) {
         gl.uniform3fv(programInfo.uniformLocations.specularProduct, specularProduct);
         gl.uniform1f(programInfo.uniformLocations.shininess, shininess);
 
-        gl.uniform4fv(programInfo.uniformLocations.pickID, buffers.pickIDs[objIndex]);
-        gl.uniform1f(programInfo.uniformLocations.scaleMult, pickScaling[objIndex]);
-
-        // Set texture for current object
-        gl.bindTexture(gl.TEXTURE_2D, textures[objIndex]);
+        // Set texture for current triangle
+        gl.bindTexture(gl.TEXTURE_2D, universeTextures[triangles[triangleIndex].texIndex]);
         gl.uniform1i(programInfo.uniformLocations.sampler, 0);
 
-        for (var i = 0; i < buffers.vertexCounts[objIndex]; i += 3) {
-            gl.drawArrays(gl.TRIANGLES, i, 3);
-        }
+        gl.drawArrays(gl.TRIANGLES, 3 * triangleIndex, 3);
     }
 }
 
 // Links position data in buffer to the vertex shader attribute
-function setPositionAttribute(gl, buffers, bufferIndex, programInfo) {
+function setPositionAttribute(gl, buffer, programInfo) {
     const numComponents = 4;
     const type = gl.FLOAT;
     const normalize = false;
-    const stride = buffers.stride;
-    const offset = buffers.positionOffset;
-    gl.bindBuffer(gl.ARRAY_BUFFER, buffers.vertexBuffers[bufferIndex]);
+    const stride = buffer.stride;
+    const offset = buffer.positionOffset;
+    gl.bindBuffer(gl.ARRAY_BUFFER, buffer.vertexBuffer);
     gl.vertexAttribPointer(
         programInfo.attribLocations.vertexPosition,
         numComponents,
@@ -592,13 +509,13 @@ function setPositionAttribute(gl, buffers, bufferIndex, programInfo) {
 }
 
 // Links color data in buffer to the vertex shader attribute
-function setColorAttribute(gl, buffers, bufferIndex, programInfo) {
+function setColorAttribute(gl, buffer, programInfo) {
     const numComponents = 4;
     const type = gl.FLOAT;
     const normalize = false;
-    const stride = buffers.stride;
-    const offset = buffers.colorOffset;
-    gl.bindBuffer(gl.ARRAY_BUFFER, buffers.vertexBuffers[bufferIndex]);
+    const stride = buffer.stride;
+    const offset = buffer.colorOffset;
+    gl.bindBuffer(gl.ARRAY_BUFFER, buffer.vertexBuffer);
     gl.vertexAttribPointer(
         programInfo.attribLocations.vertexColor,
         numComponents,
@@ -611,13 +528,13 @@ function setColorAttribute(gl, buffers, bufferIndex, programInfo) {
 }
 
 // Links texture data in buffer to the vertex shader attribute
-function setTextureAttribute(gl, buffers, bufferIndex, programInfo) {
+function setTextureAttribute(gl, buffer, programInfo) {
     const numComponents = 2;
     const type = gl.FLOAT;
     const normalize = false;
-    const stride = buffers.stride;
-    const offset = buffers.textureOffset;
-    gl.bindBuffer(gl.ARRAY_BUFFER, buffers.vertexBuffers[bufferIndex]);
+    const stride = buffer.stride;
+    const offset = buffer.textureOffset;
+    gl.bindBuffer(gl.ARRAY_BUFFER, buffer.vertexBuffer);
     gl.vertexAttribPointer(
         programInfo.attribLocations.vertexTexture,
         numComponents,
@@ -630,13 +547,13 @@ function setTextureAttribute(gl, buffers, bufferIndex, programInfo) {
 }
 
 // Links normal data in buffer to the vertex shader attribute
-function setNormalAttribute(gl, buffers, bufferIndex, programInfo) {
+function setNormalAttribute(gl, buffer, programInfo) {
     const numComponents = 3;
     const type = gl.FLOAT;
     const normalize = false;
-    const stride = buffers.stride;
-    const offset = buffers.normalOffset;
-    gl.bindBuffer(gl.ARRAY_BUFFER, buffers.vertexBuffers[bufferIndex]);
+    const stride = buffer.stride;
+    const offset = buffer.normalOffset;
+    gl.bindBuffer(gl.ARRAY_BUFFER, buffer.vertexBuffer);
     gl.vertexAttribPointer(
         programInfo.attribLocations.vertexNormal,
         numComponents,
@@ -646,4 +563,82 @@ function setNormalAttribute(gl, buffers, bufferIndex, programInfo) {
         offset
     );
     gl.enableVertexAttribArray(programInfo.attribLocations.vertexNormal);
+}
+
+function getTransformMatrices(triangles, triangleIndex) {
+    var objScalingM;
+    var objRotationM;
+    var objTranslationM;
+    var cameraM;
+
+    objScalingM = [
+        triangles[triangleIndex].scaling[0], 0.0, 0.0, 0.0,
+        0.0, triangles[triangleIndex].scaling[1], 0.0, 0.0,
+        0.0, 0.0, triangles[triangleIndex].scaling[2], 0.0,
+        0.0, 0.0, 0.0, 1.0
+    ];
+
+    var rx = [
+        [1.0,  0.0,  0.0, 0.0],
+        [0.0,  Math.cos(triangles[triangleIndex].rotation[0] * Math.PI / 180.0),  -Math.sin(triangles[triangleIndex].rotation[0] * Math.PI / 180.0), 0.0],
+        [0.0, Math.sin(triangles[triangleIndex].rotation[0] * Math.PI / 180.0),  Math.cos(triangles[triangleIndex].rotation[0] * Math.PI / 180.0), 0.0],
+        [0.0,  0.0,  0.0, 1.0]
+    ]
+    var ry = [
+        [Math.cos(triangles[triangleIndex].rotation[1] * Math.PI / 180.0), 0.0, Math.sin(triangles[triangleIndex].rotation[1] * Math.PI / 180.0), 0.0],
+        [0.0, 1.0,  0.0, 0.0],
+        [-Math.sin(triangles[triangleIndex].rotation[1] * Math.PI / 180.0), 0.0,  Math.cos(triangles[triangleIndex].rotation[1] * Math.PI / 180.0), 0.0],
+        [0.0, 0.0,  0.0, 1.0]
+    ]
+    var rz = [
+        [Math.cos(triangles[triangleIndex].rotation[2] * Math.PI / 180.0), -Math.sin(triangles[triangleIndex].rotation[2] * Math.PI / 180.0), 0.0, 0.0],
+        [Math.sin(triangles[triangleIndex].rotation[2] * Math.PI / 180.0), Math.cos(triangles[triangleIndex].rotation[2] * Math.PI / 180.0), 0.0, 0.0],
+        [0.0, 0.0, 1.0, 0.0],
+        [0.0, 0.0, 0.0, 1.0]
+    ]
+
+    // Ensure the mult method uses the correct calculation
+    rx.matrix = true;
+    ry.matrix = true;
+    rz.matrix = true;
+
+    objRotationM = mult(rx, mult(rz, ry));
+
+    objTranslationM = [
+        1.0, 0.0, 0.0, triangles[triangleIndex].translation[0],
+        0.0, 1.0, 0.0, triangles[triangleIndex].translation[1],
+        0.0, 0.0, 1.0, triangles[triangleIndex].translation[2],
+        0.0, 0.0, 0.0, 1.0
+    ];
+
+    cameraM = [
+        1.0, 0.0, 0.0, -cameraTranslation[0],
+        0.0, 1.0, 0.0, -cameraTranslation[1],
+        0.0, 0.0, 1.0, -cameraTranslation[2],
+        0.0, 0.0, 0.0, 1.0
+    ];
+
+    return {
+        scaling: objScalingM,
+        rotation: objRotationM,
+        translation: objTranslationM,
+        camera: cameraM
+    };
+}
+
+// Multiplies a 4D matrix (array of 16 values) by a 4D vector (array of 4 values)
+function transformVector4(matrix, vector) {
+    // Ensure row-major order matrix
+    if (matrix.matrix) {
+        matrix = transpose(matrix);
+        matrix = flatten(matrix);
+    }
+
+    var result = [0.0, 0.0, 0.0, 0.0];
+
+    for (var i = 0; i < matrix.length; i++) {
+        result[Math.floor(i / 4)] += matrix[i] * vector[i % 4];
+    }
+
+    return result;
 }

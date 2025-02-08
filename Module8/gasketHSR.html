@@ -22,8 +22,6 @@
             uniform vec3 uRotation;
             uniform vec3 uScale;
 
-            uniform float uScaleMult;
-
             void main() {
                 // Compute camera translation matrix (use negative values, since
                 // objects should move in the opposite direction of the camera)
@@ -64,15 +62,11 @@
                     0.0, 0.0, 0.0, 1.0
                 );
 
-                // Apply object pick scaling
-                vec3 scaling = uScale;
-                scaling *= uScaleMult;
-
                 // Create scaling matrix
                 mat4 scalingMatrix = mat4(
-                    scaling.x, 0.0, 0.0, 0.0,
-                    0.0, scaling.y, 0.0, 0.0,
-                    0.0, 0.0, scaling.z, 0.0,
+                    uScale.x, 0.0, 0.0, 0.0,
+                    0.0, uScale.y, 0.0, 0.0,
+                    0.0, 0.0, uScale.z, 0.0,
                     0.0, 0.0, 0.0, 1.0
                 );
 
@@ -158,108 +152,6 @@
 
                 // Apply new color as a combination of ambient, diffuse, and specular
                 gl_FragColor = vec4(ambientColor + diffuse * diffuseColor + specular * specularColor, 1.0);
-            }
-        </script>
-        <!-- Object picking vertex shader -->
-        <script id="pick-vertex-shader" type="x-shader/x-vertex">
-            attribute vec4 vPosition;
-
-            uniform mat4 uModelViewMatrix;
-            uniform mat4 uProjectionMatrix;
-            uniform int uOrthogonal;
-            uniform vec3 uCameraTranslation;
-
-            uniform vec3 uTranslation;
-            uniform vec3 uRotation;
-            uniform vec3 uScale;
-
-            void main() {
-                // Compute camera translation matrix (use negative values, since
-                // objects should move in the opposite direction of the camera)
-                mat4 cameraTranslationMatrix = mat4(
-                    1.0, 0.0, 0.0, 0.0,
-                    0.0, 1.0, 0.0, 0.0,
-                    0.0, 0.0, 1.0, 0.0,
-                    -uCameraTranslation.x, -uCameraTranslation.y, -uCameraTranslation.z, 1.0
-                );
-
-                // Compute the sines and cosines of theta for each of
-                // the three axes in one computation.
-                vec3 angles = radians(uRotation);
-                vec3 c = cos(angles);
-                vec3 s = sin(angles);
-
-                // Create rotation matrix for the x-axis
-                mat4 xRotationMatrix = mat4(
-                    1.0,  0.0,  0.0, 0.0,
-                    0.0,  c.x,  s.x, 0.0,
-                    0.0, -s.x,  c.x, 0.0,
-                    0.0,  0.0,  0.0, 1.0
-                );
-
-                // Create rotation matrix for the y-axis
-                mat4 yRotationMatrix = mat4(
-                    c.y, 0.0, -s.y, 0.0,
-                    0.0, 1.0,  0.0, 0.0,
-                    s.y, 0.0,  c.y, 0.0,
-                    0.0, 0.0,  0.0, 1.0
-                );
-
-                // Create rotation matrix for the z-axis
-                mat4 zRotationMatrix = mat4(
-                    c.z, s.z, 0.0, 0.0,
-                    -s.z, c.z, 0.0, 0.0,
-                    0.0, 0.0, 1.0, 0.0,
-                    0.0, 0.0, 0.0, 1.0
-                );
-
-                // Create scaling matrix
-                mat4 scalingMatrix = mat4(
-                    uScale.x, 0.0, 0.0, 0.0,
-                    0.0, uScale.y, 0.0, 0.0,
-                    0.0, 0.0, uScale.z, 0.0,
-                    0.0, 0.0, 0.0, 1.0
-                );
-
-                // Create translation matrix
-                mat4 translationMatrix = mat4(
-                    1.0, 0.0, 0.0, 0.0,
-                    0.0, 1.0, 0.0, 0.0,
-                    0.0, 0.0, 1.0, 0.0,
-                    uTranslation.x, uTranslation.y, uTranslation.z, 1.0
-                );
-
-                // Apply y-rotation (About planet axis) first
-                mat4 rotationMatrix = xRotationMatrix * zRotationMatrix * yRotationMatrix;
-                vec4 transformedPosition = translationMatrix * rotationMatrix * scalingMatrix * vPosition;
-
-                // Apply camera translation
-                transformedPosition = cameraTranslationMatrix * transformedPosition;
-
-                // Apply transformation/projection. The model view matrix positions
-                // objects to create the illusion of a change in the position and
-                // orientation of the camera. The projection matrix applies either
-                // orthogonal or perspective projection to the object and converts
-                // the viewing volume (originally in camera coordinates) to the
-                // corresponding clip coordinates.
-
-                transformedPosition = uModelViewMatrix * transformedPosition;
-                gl_Position = uProjectionMatrix * transformedPosition;
-
-                // Negate z-values for orthogonal projection for correct depth ordering
-                if (uOrthogonal == 1) {
-                    gl_Position.z = -gl_Position.z;
-                }
-            }
-        </script>
-        <!-- Object picking fragment shader -->
-        <script id="pick-fragment-shader" type="x-shader/x-fragment">
-            precision mediump float;
-
-            uniform vec4 uPickID;
-
-            void main() {
-                gl_FragColor = uPickID;
             }
         </script>
         <script type="text/javascript" src="../Common/webgl-utils.js"></script>

@@ -36,83 +36,95 @@ const vertexColors = [
     [0.0, 1.0, 1.0, 1.0]   // cyan
 ];
 
-const numElements = 36;
+const numTriangles = 12;
+const numCubes = 27;
 
-function initBuffers(gl) {
-    var buffers = [];
-    var vertexCounts = [];
+function initTriangles() {
+    var i = 0;
+    var cubeVertices = [];
+    var cubeTextures = [];
+    var cubeNormals = [];
     var materialAmbient = [];
     var materialDiffuse = [];
     var materialSpecular = [];
     var materialShininess = [];
+    var objTranslationCoords = [];
+    var objRotationThetas = [];
+    var objScalingValues = [];
+    var texIndices = [];
+    var triangles = [];
 
-    // Initialize buffers and counts for all objects
-    for (var i = 0; i < 27; i++) {
-        const objectBuffer = initCubeBuffer(gl, numElements);
-        buffers.push(objectBuffer);
-        vertexCounts.push(numElements);
+    // Initialize triangle attributes
+    for (var i = 0; i < numCubes; i++) {
+        const cube = initCubeTriangles();
+        cubeVertices.push(cube.positions);
+        cubeTextures.push(cube.textures);
+        cubeNormals.push(cube.normals);
 
-        materialAmbient.push([0.3, 0.3, 0.3]);
-        materialDiffuse.push([
+        const ambient = [0.3, 0.3, 0.3];
+        const diffuse = [
             Math.random() * 0.3 + 0.6,
             Math.random() * 0.3 + 0.6,
             Math.random() * 0.3 + 0.6
-        ]);
-        materialSpecular.push([Math.random(), Math.random(), Math.random()]);
-        materialShininess.push(Math.random() * 20.0 + 2.0);
+        ];
+        const specular = [Math.random(), Math.random(), Math.random()];
+        const shininess = Math.random() * 20.0 + 2.0;
+
+        materialAmbient.push(ambient);
+        materialDiffuse.push(diffuse);
+        materialSpecular.push(specular);
+        materialShininess.push(shininess);
+
+        objRotationThetas.push([0.0, 0.0, 0.0]);
+        objScalingValues.push([2.0, 2.0, 2.0]);
+
+        const objTranslation = [
+            (i % 3) - 1.0,
+            (Math.floor((i / 3) % 3)) - 1.0,
+            (Math.floor(i / 9)) - 1.0
+        ];
+
+        objTranslationCoords.push(objTranslation);
+
+        texIndices.push(Math.floor(Math.random() * 11.0));
     }
 
-    var pickIDs = [];
-
-    // Assign a unique color to each object to be used for object picking
-    for (var i = 0; i < buffers.length; i++) {
-        const id = i + 1;
-
-        pickIDs.push([
-            ((id >>  0) & 0xFF) / 0xFF,
-            ((id >>  8) & 0xFF) / 0xFF,
-            ((id >> 16) & 0xFF) / 0xFF,
-            ((id >> 24) & 0xFF) / 0xFF
-        ])
+    // Construct array of triangles
+    for (var cubeIndex = 0; cubeIndex < numCubes; cubeIndex++) {
+        for (var triangleIndex = 0; triangleIndex < numTriangles; triangleIndex++) {
+            triangles.push({
+                vertices: cubeVertices[cubeIndex][triangleIndex],
+                textures: cubeTextures[cubeIndex][triangleIndex],
+                normals: cubeNormals[cubeIndex][triangleIndex],
+                scaling: objScalingValues[cubeIndex],
+                rotation: objRotationThetas[cubeIndex],
+                translation: objTranslationCoords[cubeIndex],
+                materials: {
+                    ambient: materialAmbient[cubeIndex],
+                    diffuse: materialDiffuse[cubeIndex],
+                    specular: materialSpecular[cubeIndex],
+                    shininess: materialShininess[cubeIndex]
+                },
+                texIndex: texIndices[cubeIndex]
+            });
+        }
     }
 
-    return {
-        vertexBuffers: buffers, // Contains a buffer for each object in the scene
-        materials: {
-            ambient: materialAmbient,
-            diffuse: materialDiffuse,
-            specular: materialSpecular,
-            shininess: materialShininess
-        },
-        stride: 36, // Bytes between consecutive interleaved attributes
-        positionOffset: 0, // Offset for each attribute
-        textureOffset: 16,
-        normalOffset: 24,
-        vertexCounts: vertexCounts,
-        pickIDs: pickIDs // Identification colors for object picking
-    };
+    return triangles;
 }
 
-function initCubeBuffer(gl, numElements) {
-    const vertexBuffer = gl.createBuffer();
-    gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer);
-
+function initCubeTriangles() {
     var positions = initPositions();
     var textureCoords = initTextureCoords();
     var normals = initNormals();
 
-    var attributes = [];
+    const cube = {
+        positions: positions,
+        textures: textureCoords,
+        normals: normals
+    };
 
-    // Interleave vertex attributes within the same buffer
-    for (var i = 0; i < numElements; i++) {
-        attributes.push(positions[i]);
-        attributes.push(textureCoords[i]);
-        attributes.push(normals[i]);
-    }
-
-    gl.bufferData(gl.ARRAY_BUFFER, flatten(attributes), gl.STATIC_DRAW);
-
-    return vertexBuffer;
+    return cube;
 }
 
 function initPositions() {
@@ -121,10 +133,19 @@ function initPositions() {
     for (var i = 0; i < indices.length; i++) {
         const [a, b, c, d] = indices[i];
         const vertexIndices = [a, b, c, a, c, d];
+        var triangle1 = [];
+        var triangle2 = [];
 
         for (var j = 0; j < vertexIndices.length; j++) {
-            positions.push(vertices[vertexIndices[j]]);
+            if (j < 3) {
+                triangle1.push(vertices[vertexIndices[j]]);
+            } else {
+                triangle2.push(vertices[vertexIndices[j]]);
+            }
         }
+
+        positions.push(triangle1);
+        positions.push(triangle2);
     }
 
     return positions;
@@ -136,9 +157,19 @@ function initTextureCoords() {
     for (var i = 0; i < indices.length; i++) {
         const textureIndices = [0, 1, 2, 0, 2, 3];
 
+        var triangle1 = [];
+        var triangle2 = [];
+
         for (var j = 0; j < textureIndices.length; j++) {
-            textureCoords.push(textureCorners[textureIndices[j]]);
+            if (j < 3) {
+                triangle1.push(textureCorners[textureIndices[j]]);
+            } else {
+                triangle2.push(textureCorners[textureIndices[j]]);
+            }
         }
+
+        textureCoords.push(triangle1);
+        textureCoords.push(triangle2);
     }
 
     return textureCoords;
@@ -155,9 +186,9 @@ function initNormals() {
         const edge2 = subtract(vertices[c], vertices[a]);
         const normal = normalize(cross(edge1, edge2));
 
-        for (var j = 0; j < numNormals; j++) {
-            normals.push(normal);
-        }
+        // Push normals for all vertices of both triangles
+        normals.push([normal, normal, normal]);
+        normals.push([normal, normal, normal]);
     }
 
     return normals;
