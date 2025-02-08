@@ -228,13 +228,13 @@ window.onload = function init() {
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
 
-    // create a depth renderbuffer
+    // Create a depth renderbuffer
     const depthBuffer = gl.createRenderbuffer();
     gl.bindRenderbuffer(gl.RENDERBUFFER, depthBuffer);
 
     function setFramebufferAttachmentSizes(width, height) {
         gl.bindTexture(gl.TEXTURE_2D, targetTexture);
-        // define size and format of level 0
+        // Define size and format of level 0
         const level = 0;
         const internalFormat = gl.RGBA;
         const border = 0;
